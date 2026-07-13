@@ -1,4 +1,28 @@
 {
-  "name": "Green_Node",
-  "displayName": "Green_Node"
+  "expo": {
+    "name": "GreenNode",
+    "slug": "greennode",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#2E7D32"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.greennode.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2E7D32"
+      },
+      "package": "com.greennode.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    }
+  }
 }
