@@ -163,26 +163,7 @@ export function LoginScreen() {
 
             <Spacer size="xl" />
 
-            {/* Social login placeholders */}
-            <ButtonPrimary
-              onPress={() => {}}
-              variant="outline"
-              fullWidth
-              size="large"
-            >
-              Continuar con Google
-            </ButtonPrimary>
-
-            <Spacer size="md" />
-
-            <ButtonPrimary
-              onPress={() => {}}
-              variant="secondary"
-              fullWidth
-              size="large"
-            >
-              Continuar con Apple
-            </ButtonPrimary>
+            
           </View>
 
           <Spacer size="xl" />

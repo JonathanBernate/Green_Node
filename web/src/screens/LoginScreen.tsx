@@ -102,15 +102,6 @@ export function LoginScreen({ onLogin }: Props) {
               <div className="divider-line" />
             </div>
 
-            <button type="button" className="btn btn-outline btn-large">
-              Continuar con Google
-            </button>
-
-            <div style={{ height: 12 }} />
-
-            <button type="button" className="btn btn-secondary btn-large">
-              Continuar con Apple
-            </button>
           </form>
 
           <div className="footer">
