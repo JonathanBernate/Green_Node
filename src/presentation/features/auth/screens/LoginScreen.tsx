@@ -19,20 +19,24 @@ import { Caption } from '@/presentation/components/ui/Typography/Caption';
 import { TextInput } from '@/presentation/components/ui/Input/TextInput';
 import { ButtonPrimary } from '@/presentation/components/ui/Button/ButtonPrimary';
 import { useAuthStore } from '@/presentation/store/authStore';
+import { AuthRepositoryImpl } from '@/data/repositories/AuthRepositoryImpl';
+import { ApiError } from '@/data/datasources/remote/api/apiClient';
 import { colors } from '@/shared/constants/colors';
 import { spacing } from '@/shared/constants/spacing';
 import { typography } from '@/shared/constants/typography';
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+const authRepository = new AuthRepositoryImpl();
 
 export function LoginScreen() {
   const navigation = useNavigation<NavProp>();
   const login = useAuthStore((s) => s.login);
+  const clearPersistedData = useAuthStore((s) => s.clearPersistedData);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   const validate = useCallback(() => {
     const newErrors: { email?: string; password?: string } = {};
@@ -50,22 +54,26 @@ export function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   }, [email, password]);
 
-  const handleLogin = useCallback(() => {
+  const handleLogin = useCallback(async () => {
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      login(
-        {
-          id: '1',
-          name: 'Usuario Demo',
-          email: email.trim(),
-          points: 0,
-          level: 1,
-        },
-        { accessToken: 'demo-token', refreshToken: 'demo-refresh' },
-      );
+    setErrors({});
+    try {
+      console.log('[Login] Calling API...');
+      const result = await authRepository.login(email.trim(), password);
+      console.log('[Login] API response:', JSON.stringify(result));
+      login(result.user, { accessToken: result.token, refreshToken: result.token });
+      console.log('[Login] Store updated');
+    } catch (error) {
+      console.log('[Login] Error:', error);
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Error al conectar con el servidor';
+      setErrors({ general: message });
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   }, [email, password, login, validate]);
 
   return (
@@ -132,6 +140,12 @@ export function LoginScreen() {
               </Pressable>
             </View>
 
+            {errors.general && (
+              <View style={styles.generalError}>
+                <Caption color={colors.semantic.error}>{errors.general}</Caption>
+              </View>
+            )}
+
             <Pressable
               onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotPassword}
@@ -179,6 +193,21 @@ export function LoginScreen() {
               </Body>
             </Pressable>
           </View>
+
+          <Spacer size="lg" />
+
+          {/* Debug: limpiar datos viejos */}
+          <Pressable
+            onLongPress={async () => {
+              await clearPersistedData();
+              console.log('[Login] Persisted data cleared');
+            }}
+            style={styles.debugClear}
+          >
+            <Caption color={colors.neutral[400]}>
+              (mantén presionado para limpiar datos)
+            </Caption>
+          </Pressable>
 
           <Spacer size="lg" />
         </ScrollView>
@@ -237,6 +266,14 @@ const styles = StyleSheet.create({
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
   },
+  generalError: {
+    backgroundColor: '#FEF2F2',
+    padding: spacing.md,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,5 +288,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  debugClear: {
+    padding: spacing.sm,
   },
 });

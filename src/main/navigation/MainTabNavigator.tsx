@@ -3,6 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '@/shared/types/navigation.types';
 import { colors } from '@/shared/constants/colors';
+import { AppHeader } from '@/presentation/components/layout/AppHeader';
+import { HomeScreen } from '@/presentation/features/home/screens/HomeScreen';
+import { ProfileScreen } from '@/presentation/features/profile/screens/ProfileScreen';
 
 const PlaceholderScreen = ({ title }: { title: string }) => (
   <View style={styles.placeholder}>
@@ -16,13 +19,19 @@ export function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,
+        header: () => <AppHeader />,
         tabBarActiveTintColor: colors.primary[500],
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
+      <Tab.Screen
+        name="HomeTab"
+        options={{ tabBarLabel: 'Inicio', tabBarIcon: () => <Text>🏠</Text> }}
+      >
+        {() => <HomeScreen />}
+      </Tab.Screen>
       <Tab.Screen
         name="ScanTab"
         options={{ tabBarLabel: 'Escanear', tabBarIcon: () => <Text>📷</Text> }}
@@ -42,16 +51,10 @@ export function MainTabNavigator() {
         {() => <PlaceholderScreen title="Historial" />}
       </Tab.Screen>
       <Tab.Screen
-        name="EducationTab"
-        options={{ tabBarLabel: 'Aprender', tabBarIcon: () => <Text>📚</Text> }}
-      >
-        {() => <PlaceholderScreen title="Aprender" />}
-      </Tab.Screen>
-      <Tab.Screen
         name="ProfileTab"
         options={{ tabBarLabel: 'Perfil', tabBarIcon: () => <Text>👤</Text> }}
       >
-        {() => <PlaceholderScreen title="Perfil" />}
+        {() => <ProfileScreen />}
       </Tab.Screen>
     </Tab.Navigator>
   );

@@ -1,7 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 
 interface Props {
-  onLogin: () => void;
+  onLogin: (user: { id: string; name: string; email: string; points: number; level: number }, token: string) => void;
 }
 
 export function LoginScreen({ onLogin }: Props) {
@@ -9,7 +9,7 @@ export function LoginScreen({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -27,14 +27,33 @@ export function LoginScreen({ onLogin }: Props) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
+    setErrors({});
+    try {
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await response.json() as Record<string, unknown>;
+      if (!response.ok) {
+        const errors = data?.errors as Record<string, string[]> | undefined;
+        const message = (data?.message as string) || errors?.email?.[0] || 'Credenciales incorrectas';
+        setErrors({ general: message });
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem('auth_token', data.token as string);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      onLogin(data.user as { id: string; name: string; email: string; points: number; level: number }, data.token as string);
+    } catch {
+      setErrors({ general: 'Error al conectar con el servidor' });
+    } finally {
       setLoading(false);
-      onLogin();
-    }, 1200);
+    }
   };
 
   return (
@@ -56,7 +75,7 @@ export function LoginScreen({ onLogin }: Props) {
                 type="email"
                 className={`input-field ${errors.email ? 'error' : ''}`}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
                 placeholder="tu@correo.com"
                 autoComplete="email"
               />
@@ -69,7 +88,7 @@ export function LoginScreen({ onLogin }: Props) {
                 type={showPassword ? 'text' : 'password'}
                 className={`input-field ${errors.password ? 'error' : ''}`}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
@@ -83,6 +102,15 @@ export function LoginScreen({ onLogin }: Props) {
               {errors.password && <p className="error-text">{errors.password}</p>}
             </div>
 
+            {errors.general && (
+              <div style={{
+                background: '#FEF2F2', border: '1px solid #FECACA',
+                borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 14, color: '#DC2626',
+              }}>
+                {errors.general}
+              </div>
+            )}
+
             <button type="button" className="forgot-link">
               ¿Olvidaste tu contraseña?
             </button>
@@ -91,7 +119,6 @@ export function LoginScreen({ onLogin }: Props) {
               type="submit"
               className="btn btn-primary btn-large"
               disabled={loading}
-              onClick={handleSubmit}
             >
               {loading ? <div className="spinner" /> : 'Iniciar Sesión'}
             </button>
