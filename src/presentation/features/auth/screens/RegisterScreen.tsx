@@ -22,41 +22,71 @@ import { useAuthStore } from '@/presentation/store/authStore';
 import { colors } from '@/shared/constants/colors';
 import { spacing } from '@/shared/constants/spacing';
 
-type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
-export function LoginScreen() {
+interface FormErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+
+export function RegisterScreen() {
   const navigation = useNavigation<NavProp>();
-  const { loginWithCredentials, isLoading, error, clearError } = useAuthStore();
+  const { registerUser, isLoading, error, clearError } = useAuthStore();
+
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const validate = useCallback(() => {
-    const newErrors: { email?: string; password?: string } = {};
+  const validate = useCallback((): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'El nombre es obligatorio';
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Mínimo 2 caracteres';
+    }
+
     if (!email.trim()) {
       newErrors.email = 'El correo es obligatorio';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Ingresa un correo válido';
     }
+
     if (!password) {
       newErrors.password = 'La contraseña es obligatoria';
     } else if (password.length < 6) {
       newErrors.password = 'Mínimo 6 caracteres';
     }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Confirma tu contraseña';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [email, password]);
+  }, [name, email, password, confirmPassword]);
 
-  const handleLogin = useCallback(async () => {
+  const handleRegister = useCallback(async () => {
     if (!validate()) return;
     clearError();
     try {
-      await loginWithCredentials(email.trim(), password);
+      await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        neighborhood: neighborhood.trim() || undefined,
+      });
     } catch {
-      // El error se maneja via el store
+      // Error manejado por el store
     }
-  }, [email, password, loginWithCredentials, validate, clearError]);
+  }, [name, email, password, neighborhood, registerUser, validate, clearError]);
 
   return (
     <ScreenContainer safeAreaBottom={false}>
@@ -69,31 +99,26 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header / Logo */}
-          <View style={styles.logoSection}>
+          {/* Header */}
+          <View style={styles.header}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoIcon}>♻️</Text>
+              <Text style={styles.logoIcon}>🌱</Text>
             </View>
             <Spacer size="lg" />
-            <Heading level={1} align="center" color={colors.primary[700]}>
-              GreenNode
+            <Heading level={2} align="center" color={colors.primary[700]}>
+              Crear Cuenta
             </Heading>
             <Spacer size="xs" />
             <Body align="center" color={colors.neutral[500]}>
-              Gestión inteligente de residuos
+              Únete a la comunidad GreenNode
             </Body>
           </View>
 
-          <Spacer size="xxl" />
+          <Spacer size="xl" />
 
           {/* Form */}
           <View style={styles.formSection}>
-            <Heading level={3} align="center">
-              Iniciar Sesión
-            </Heading>
-            <Spacer size="xl" />
-
-            {/* Error global del store */}
+            {/* Error global */}
             {error && (
               <>
                 <View style={styles.errorBanner}>
@@ -102,6 +127,15 @@ export function LoginScreen() {
                 <Spacer size="md" />
               </>
             )}
+
+            <TextInput
+              label="Nombre completo"
+              value={name}
+              onChangeText={setName}
+              placeholder="Tu nombre"
+              autoCapitalize="words"
+              error={errors.name}
+            />
 
             <TextInput
               label="Correo electrónico"
@@ -113,76 +147,49 @@ export function LoginScreen() {
               error={errors.email}
             />
 
-            <View style={styles.passwordContainer}>
-              <TextInput
-                label="Contraseña"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                secureTextEntry={!showPassword}
-                error={errors.password}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.showPasswordBtn}
-              >
-                <Caption color={colors.primary[500]}>
-                  {showPassword ? 'Ocultar' : 'Mostrar'}
-                </Caption>
-              </Pressable>
-            </View>
+            <TextInput
+              label="Contraseña"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Mínimo 6 caracteres"
+              secureTextEntry
+              error={errors.password}
+            />
 
-            <Pressable
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={styles.forgotPassword}
-            >
-              <Caption color={colors.primary[500]}>
-                ¿Olvidaste tu contraseña?
-              </Caption>
-            </Pressable>
+            <TextInput
+              label="Confirmar contraseña"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Repite tu contraseña"
+              secureTextEntry
+              error={errors.confirmPassword}
+            />
+
+            <TextInput
+              label="Barrio / Localidad (opcional)"
+              value={neighborhood}
+              onChangeText={setNeighborhood}
+              placeholder="Ej: Kennedy, Suba, Engativá"
+              autoCapitalize="words"
+            />
 
             <Spacer size="lg" />
 
             <ButtonPrimary
-              onPress={handleLogin}
+              onPress={handleRegister}
               fullWidth
               size="large"
               loading={isLoading}
             >
-              Iniciar Sesión
-            </ButtonPrimary>
-
-            <Spacer size="xl" />
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Caption color={colors.neutral[400]}>o</Caption>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <Spacer size="xl" />
-
-            {/* Social login placeholders */}
-            <ButtonPrimary
-              onPress={() => {}}
-              variant="outline"
-              fullWidth
-              size="large"
-            >
-              Continuar con Google
+              Crear Cuenta
             </ButtonPrimary>
 
             <Spacer size="md" />
 
-            <ButtonPrimary
-              onPress={() => {}}
-              variant="secondary"
-              fullWidth
-              size="large"
-            >
-              Continuar con Apple
-            </ButtonPrimary>
+            <Caption color={colors.neutral[400]} align="center">
+              Al registrarte aceptas nuestros términos y condiciones y nuestra
+              política de privacidad
+            </Caption>
           </View>
 
           <Spacer size="xl" />
@@ -190,23 +197,16 @@ export function LoginScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Body color={colors.neutral[500]} align="center">
-              ¿No tienes cuenta?{' '}
+              ¿Ya tienes cuenta?{' '}
             </Body>
-            <Pressable onPress={() => navigation.navigate('Register')}>
+            <Pressable onPress={() => navigation.navigate('Login')}>
               <Body color={colors.primary[500]} fontWeight="600">
-                Regístrate aquí
+                Inicia sesión
               </Body>
             </Pressable>
           </View>
 
           <Spacer size="lg" />
-
-          {/* Demo hint */}
-          <View style={styles.demoHint}>
-            <Caption color={colors.neutral[400]} align="center">
-              Demo: demo@greennode.co / 123456
-            </Caption>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -223,21 +223,21 @@ const styles = StyleSheet.create({
     paddingTop: spacing.huge,
     paddingBottom: spacing.xxl,
   },
-  logoSection: {
+  header: {
     alignItems: 'center',
   },
   logoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: colors.primary[50],
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.primary[100],
   },
   logoIcon: {
-    fontSize: 40,
+    fontSize: 32,
   },
   formSection: {
     backgroundColor: colors.surface,
@@ -256,36 +256,9 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.semantic.error,
   },
-  passwordContainer: {
-    position: 'relative',
-  },
-  showPasswordBtn: {
-    position: 'absolute',
-    right: 0,
-    top: 36,
-    padding: spacing.xs,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.neutral[200],
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  demoHint: {
-    paddingVertical: spacing.sm,
   },
 });
