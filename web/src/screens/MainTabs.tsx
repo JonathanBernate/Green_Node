@@ -1,4 +1,10 @@
 import React, { useState } from 'react';
+import { AppStoreProvider } from '../lib/appStore';
+import { ScanTab } from './tabs/ScanTab';
+import { MapTab } from './tabs/MapTab';
+import { HistoryTab } from './tabs/HistoryTab';
+import { EducationTab } from './tabs/EducationTab';
+import { ProfileTab } from './tabs/ProfileTab';
 
 interface Props {
   onLogout: () => void;
@@ -14,25 +20,30 @@ const TABS = [
 
 export function MainTabs({ onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('scan');
-  const active = TABS.find((t) => t.key === activeTab);
 
   return (
-    <div className="tabs-page">
-      <div className="tabs-content">
-        <h2>{active?.icon} {active?.label}</h2>
+    <AppStoreProvider>
+      <div className="tabs-page">
+        <div className="tabs-content">
+          {activeTab === 'scan' && <ScanTab />}
+          {activeTab === 'map' && <MapTab />}
+          {activeTab === 'history' && <HistoryTab />}
+          {activeTab === 'education' && <EducationTab />}
+          {activeTab === 'profile' && <ProfileTab onLogout={onLogout} />}
+        </div>
+        <div className="tab-bar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`tab-item ${activeTab === tab.key ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="tab-bar">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`tab-item ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+    </AppStoreProvider>
   );
 }
