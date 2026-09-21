@@ -1,46 +1,68 @@
 /**
- * Servicio de inferencia real con TensorFlow.js para la web.
+ * Servicio de inferencia real para la web usando el modelo .tflite entrenado.
  *
- * Carga el modelo entrenado (MobileNetV2 exportado a TFJS) desde
- * /model/model.json y clasifica una imagen en las 6 clases del proyecto.
+ * Carga TensorFlow.js y tfjs-tflite DESDE CDN en tiempo de ejecución (no se
+ * empaquetan con Vite, porque el paquete tfjs-tflite alpha tiene imports que
+ * rompen el bundler). Esto mantiene la web ligera y evita errores de build.
  *
- * El modelo se genera con ml/train_waste_classifier.py y sus archivos
- * (model.json + *.bin) deben copiarse a web/public/model/.
+ * Archivos esperados en web/public/model/:
+ *   - waste_classifier_v1.tflite
+ *   - labels.json   (ej: ["plastic","paper","glass","metal","special"])
  *
  * Si el modelo no está presente, isModelAvailable() devuelve false y el
- * llamador puede recurrir a la clasificación simulada.
+ * llamador recurre a la clasificación simulada.
  *
  * Preprocesamiento: idéntico al del entrenamiento
- * (tf.keras.applications.mobilenet_v2.preprocess_input → rango [-1, 1]).
+ * (mobilenet_v2.preprocess_input → rango [-1, 1]).
  */
 
-import * as tf from '@tensorflow/tfjs';
-import {
-  ClassificationResult,
-  WasteType,
-} from './domain';
+import { ClassificationResult, WasteType } from './domain';
 
-const MODEL_URL = '/model/model.json';
+const MODEL_URL = '/model/waste_classifier_v1.tflite';
+const LABELS_URL = '/model/labels.json';
 const IMG_SIZE = 224;
 const MIN_CONFIDENCE_THRESHOLD = 0.5;
 
-// Orden EXACTO de clases usado en el entrenamiento (CLASS_ORDER del notebook)
-const INDEX_TO_WASTE_TYPE: WasteType[] = [
-  WasteType.ORGANIC,
-  WasteType.PLASTIC,
-  WasteType.PAPER,
-  WasteType.GLASS,
-  WasteType.METAL,
-  WasteType.SPECIAL,
-];
+const TFJS_CDN = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+const TFLITE_CDN =
+  'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js';
 
-let model: tf.LayersModel | null = null;
-let loadPromise: Promise<tf.LayersModel | null> | null = null;
+// tf y tflite se cargan globalmente desde el CDN (window.tf, window.tflite)
+declare global {
+  interface Window {
+    tf: any;
+    tflite: any;
+  }
+}
+
+const NAME_TO_WASTE_TYPE: Record<string, WasteType> = {
+  organic: WasteType.ORGANIC,
+  plastic: WasteType.PLASTIC,
+  paper: WasteType.PAPER,
+  glass: WasteType.GLASS,
+  metal: WasteType.METAL,
+  special: WasteType.SPECIAL,
+};
+
+let model: any = null;
+let labels: WasteType[] | null = null;
+let loadPromise: Promise<any> | null = null;
 let available: boolean | null = null;
 
-/**
- * Comprueba (una vez) si el modelo está disponible en el servidor.
- */
+/** Carga un script externo una sola vez. */
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+/** Comprueba (una vez) si el modelo está disponible en el servidor. */
 export async function isModelAvailable(): Promise<boolean> {
   if (available !== null) return available;
   try {
@@ -52,51 +74,58 @@ export async function isModelAvailable(): Promise<boolean> {
   return available;
 }
 
-/**
- * Carga el modelo de forma lazy (una sola vez).
- */
-export async function loadModel(): Promise<tf.LayersModel | null> {
+async function loadLabels(): Promise<WasteType[]> {
+  try {
+    const res = await fetch(LABELS_URL);
+    if (res.ok) {
+      const names: string[] = await res.json();
+      console.info('[GreenNode] [TFLite] Clases del modelo:', names);
+      return names.map((n) => NAME_TO_WASTE_TYPE[n] ?? WasteType.SPECIAL);
+    }
+  } catch {
+    /* ignore */
+  }
+  console.warn('[GreenNode] [TFLite] labels.json no encontrado, usando orden por defecto');
+  return [
+    WasteType.ORGANIC,
+    WasteType.PLASTIC,
+    WasteType.PAPER,
+    WasteType.GLASS,
+    WasteType.METAL,
+    WasteType.SPECIAL,
+  ];
+}
+
+/** Carga el modelo .tflite de forma lazy (una sola vez). */
+export async function loadModel(): Promise<any> {
   if (model) return model;
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
     if (!(await isModelAvailable())) {
-      console.warn('[GreenNode] [TFJS] Modelo no encontrado en /model/. Usando simulación.');
+      console.warn('[GreenNode] [TFLite] Modelo no encontrado en /model/. Usando simulación.');
       return null;
     }
-    console.info('[GreenNode] [TFJS] Cargando modelo real...');
+    console.info('[GreenNode] [TFLite] Cargando TensorFlow desde CDN...');
     const start = performance.now();
-    const m = await tf.loadLayersModel(MODEL_URL);
-    // Pre-calentamiento: una inferencia dummy para optimizar la primera real
-    const warm = tf.zeros([1, IMG_SIZE, IMG_SIZE, 3]);
-    const p = m.predict(warm) as tf.Tensor;
-    p.dispose();
-    warm.dispose();
-    model = m;
-    console.info(`[GreenNode] [TFJS] Modelo cargado en ${(performance.now() - start).toFixed(0)}ms`);
-    return m;
+
+    await loadScript(TFJS_CDN);
+    await loadScript(TFLITE_CDN);
+
+    if (!window.tflite) throw new Error('tfjs-tflite no se cargó');
+
+    labels = await loadLabels();
+    model = await window.tflite.loadTFLiteModel(MODEL_URL);
+
+    console.info(
+      `[GreenNode] [TFLite] Modelo cargado en ${(performance.now() - start).toFixed(0)}ms`,
+    );
+    return model;
   })();
 
   return loadPromise;
 }
 
-/**
- * Convierte una imagen (elemento HTML) a tensor preprocesado [1,224,224,3].
- * Aplica el mismo preprocesamiento que MobileNetV2 en entrenamiento: [-1, 1].
- */
-function preprocess(img: HTMLImageElement | HTMLCanvasElement): tf.Tensor {
-  return tf.tidy(() => {
-    let t = tf.browser.fromPixels(img).toFloat();
-    t = tf.image.resizeBilinear(t, [IMG_SIZE, IMG_SIZE]);
-    // mobilenet_v2.preprocess_input: x/127.5 - 1  → rango [-1, 1]
-    t = t.div(127.5).sub(1);
-    return t.expandDims(0);
-  });
-}
-
-/**
- * Carga una imagen desde un dataURL/URL a un HTMLImageElement.
- */
 function loadImageElement(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -108,29 +137,37 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Clasifica una imagen con el modelo real.
+ * Clasifica una imagen con el modelo real .tflite.
  * Lanza si el modelo no está disponible (el llamador debe verificar antes).
  */
 export async function classifyWithModel(imageSrc: string): Promise<ClassificationResult> {
   const m = await loadModel();
-  if (!m) throw new Error('Modelo no disponible');
+  if (!m || !labels) throw new Error('Modelo no disponible');
 
+  const tf = window.tf;
   const start = performance.now();
   const imgEl = await loadImageElement(imageSrc);
 
-  const input = preprocess(imgEl);
-  const output = m.predict(input) as tf.Tensor;
-  const probabilities = Array.from(await output.data());
+  // Preprocesar a [1,224,224,3] en rango [-1,1] (mobilenet_v2.preprocess_input)
+  const input = tf.tidy(() => {
+    let t = tf.browser.fromPixels(imgEl).toFloat();
+    t = tf.image.resizeBilinear(t, [IMG_SIZE, IMG_SIZE]);
+    t = t.div(127.5).sub(1);
+    return t.expandDims(0);
+  });
+
+  const output = m.predict(input);
+  const probabilities: number[] = Array.from(await output.data());
   input.dispose();
   output.dispose();
 
   const maxIndex = probabilities.indexOf(Math.max(...probabilities));
-  const wasteType = INDEX_TO_WASTE_TYPE[maxIndex] ?? WasteType.SPECIAL;
+  const wasteType = labels[maxIndex] ?? WasteType.SPECIAL;
   const confidence = probabilities[maxIndex] ?? 0;
   const inferenceTimeMs = Math.round(performance.now() - start);
 
   console.debug(
-    `[GreenNode] [TFJS] Clasificación real: ${wasteType} (${(confidence * 100).toFixed(1)}%) en ${inferenceTimeMs}ms`,
+    `[GreenNode] [TFLite] Clasificación real: ${wasteType} (${(confidence * 100).toFixed(1)}%) en ${inferenceTimeMs}ms`,
   );
 
   return {

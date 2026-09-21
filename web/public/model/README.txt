@@ -1,13 +1,13 @@
-Coloca aquí el modelo entrenado en formato TensorFlow.js:
+Coloca aquí el modelo entrenado (formato TFLite) descargado de Colab:
 
   web/public/model/
-  ├── model.json
-  ├── group1-shard1of4.bin
-  ├── group1-shard2of4.bin
-  └── ...
+  ├── waste_classifier_v1.tflite    (el modelo)
+  └── labels.json                   (orden de clases, ej: ["plastic","paper",...])
 
-Genéralo con ml/train_waste_classifier.py (carpeta tfjs_model/) y copia
-su contenido aquí.
+Ambos archivos se descargan al final del notebook ml/GreenNode_Entrenamiento.ipynb.
 
-Mientras este archivo model.json no exista, la app usa clasificación
-simulada automáticamente. Ver ml/README.md para el detalle.
+Mientras waste_classifier_v1.tflite no exista, la app usa clasificación
+simulada automáticamente.
+
+Nota: el modelo actual entrena con 5 clases (sin 'organic', porque TrashNet
+no la incluye). labels.json refleja ese orden y el codigo se adapta solo.
