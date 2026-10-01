@@ -375,6 +375,16 @@ html, body, #root {
   color: var(--neutral-400);
 }
 
+.model-error-banner {
+  font-size: 12px;
+  color: var(--error);
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+
 /* Selector de modo (Escáner / Adjuntar) */
 .mode-switch {
   display: flex;
@@ -1451,4 +1461,48 @@ html, body, #root {
   font-size: 12px;
   color: var(--neutral-400);
   margin-top: 16px;
+}
+
+/* ---------------- Network tab ---------------- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+}
+
+.metric-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary-700);
+  line-height: 1.1;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--neutral-600);
+}
+
+.net-fill-track {
+  flex: 1;
+  height: 14px;
+  background: var(--neutral-100);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.net-fill-bar {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.4s;
 }

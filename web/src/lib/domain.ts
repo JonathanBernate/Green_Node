@@ -68,6 +68,8 @@ export interface ClassificationResult {
   wasteType: WasteType;
   confidence: number;
   probabilities: number[];
+  /** WasteType correspondiente a cada valor de `probabilities` (mismo orden). */
+  probabilityLabels?: WasteType[];
   isLowConfidence: boolean;
   inferenceTimeMs: number;
   timestamp: string;

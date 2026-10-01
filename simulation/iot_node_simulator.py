@@ -48,6 +48,25 @@ LOCALIDADES_BOGOTA = [
     "Barrios Unidos", "Teusaquillo", "Rafael Uribe",
 ]
 
+ALERT_THRESHOLD = 90  # Umbral_Alerta (Req 6)
+
+
+def alert_severity(fill_level: float) -> str:
+    """medium en [90,97], high en >=98 (Req 6.2, 6.3)."""
+    return "high" if fill_level >= 98 else "medium"
+
+
+def build_alert(cycle: int, container) -> dict:
+    """Construye el payload de alerta de sobrellenado (Req 2.6, 6.1)."""
+    return {
+        "alertId": f"alert-{cycle}-{container.id}",
+        "type": "overflow",
+        "containerId": container.id,
+        "message": f"Contenedor {container.id} al {container.fill_level:.0f}% - requiere recolección",
+        "severity": alert_severity(container.fill_level),
+        "timestamp": datetime.now().isoformat(),
+    }
+
 
 @dataclass
 class ContainerNode:
@@ -81,8 +100,8 @@ class ContainerNode:
         # Consumo de batería (muy bajo: ~0.01% por lectura)
         self.battery_level = max(0, self.battery_level - 0.008)
 
-        # Detectar si necesita recolección (>90%)
-        if self.fill_level >= 90 and self.status != "full":
+        # Detectar si necesita recolección (>= Umbral_Alerta)
+        if self.fill_level >= ALERT_THRESHOLD and self.status != "full":
             self.status = "full"
 
         return self.to_mqtt_payload()
@@ -164,7 +183,7 @@ def main():
     parser = argparse.ArgumentParser(description="Simulador de Nodos IoT GreenNode")
     parser.add_argument("--broker", default="localhost", help="Dirección del broker MQTT")
     parser.add_argument("--port", type=int, default=1883, help="Puerto del broker")
-    parser.add_argument("--nodes", type=int, default=50, help="Número de contenedores")
+    parser.add_argument("--nodes", type=int, default=5, help="Número de contenedores (c-001..c-005)")
     parser.add_argument("--interval", type=int, default=30, help="Intervalo de reporte (seg)")
     parser.add_argument("--duration", type=int, default=0, help="Duración en segundos (0=infinito)")
     args = parser.parse_args()
@@ -229,16 +248,24 @@ def main():
                 else:
                     metrics["containers_active"] += 1
 
-                # Generar alerta si contenedor lleno
-                if container.fill_level >= 95:
-                    alert = {
-                        "alertId": f"alert-{cycle}-{container.id}",
-                        "type": "overflow",
+                # Publicar status y alerta si contenedor lleno (>= Umbral_Alerta)
+                if container.fill_level >= ALERT_THRESHOLD:
+                    # Status al Topic_Status con QoS 1 (Req 2.5)
+                    status_payload = {
                         "containerId": container.id,
-                        "message": f"Contenedor {container.id} al {container.fill_level:.0f}% - requiere recolección urgente",
-                        "severity": "high" if container.fill_level >= 98 else "medium",
+                        "status": "full",
+                        "reason": f"fill_level >= {ALERT_THRESHOLD}",
                         "timestamp": datetime.now().isoformat(),
                     }
+                    if client:
+                        client.publish(
+                            TOPICS["status"].format(container_id=container.id),
+                            json.dumps(status_payload),
+                            qos=1,
+                        )
+
+                    # Alerta al Topic_Alertas con QoS 2 (Req 2.6)
+                    alert = build_alert(cycle, container)
                     if client:
                         client.publish(TOPICS["alert"], json.dumps(alert), qos=2)
                     print(f"  ⚠️  ALERTA: {alert['message']}")

@@ -1,0 +1,72 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Crear `mqtt/docker-compose.yml` y `mqtt/mosquitto.conf`": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785219876
+      },
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785308608
+      }
+    ],
+    "2.1 Ajustar los valores por defecto de los argumentos CLI del simulador": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785321045
+      },
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785387147
+      }
+    ],
+    "2.2 Introducir el umbral de alerta y la función pura `alert_severity`": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785398636
+      },
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785483277
+      }
+    ],
+    "2.3 Escribir property test para `alert_severity`": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790785517042
+      },
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790786436832
+      }
+    ],
+    "2.4 Publicar status (QoS 1) y alerta (QoS 2) al cruzar el umbral": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790786451315
+      },
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790786885985
+      }
+    ],
+    "2. Ajustar el simulador de nodos IoT en Python": [
+      {
+        "executionId": "30772d96-4c73-400a-ab02-2a48f7969033",
+        "chatSessionId": "sess_28ebd64c-1499-4019-9ed4-fb8fe2bb7211",
+        "timestamp": 1790786886062
+      }
+    ]
+  }
+}

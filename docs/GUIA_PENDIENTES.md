@@ -45,72 +45,63 @@ conectan las piezas reales.
 
 | Componente | Estado hoy | Dónde está en el código |
 |------------|------------|-------------------------|
-| Modelo de IA (clasificación) | Simulado (resultados aleatorios) | `src/infrastructure/ai/TensorFlowService.ts` |
-| Cliente MQTT | Simulado | `src/data/datasources/remote/mqtt/MqttClient.ts` |
+| Modelo de IA (clasificación) | ✅ LISTO en web (modelo real de 6 clases) · simulado aún en móvil | `web/src/lib/tfClassifier.ts` (web) / `src/infrastructure/ai/TensorFlowService.ts` (móvil) |
+| Red IoT / MQTT | ✅ Infraestructura LISTA y verificada (broker + simulador) · falta activar cliente en la app móvil (requiere Android) | `mqtt/` (broker Docker), `simulation/iot_node_simulator.py`, `src/data/datasources/remote/mqtt/MqttClient.ts` |
+| Contenedores | ✅ Simulador IoT real publicando c-001..c-005 vía MQTT | `simulation/iot_node_simulator.py` |
 | Cámara móvil | Simulada | `src/infrastructure/camera/CameraService.ts` |
 | Autenticación (login) | Simulada (en memoria) | `src/data/repositories/AuthRepositoryImpl.ts` |
-| Contenedores | Datos de ejemplo (mock) | `src/presentation/store/containerStore.ts` |
 | Backend / base de datos | No existe | - |
 
 ---
 
 ## 4. LO QUE FALTA POR HACER (ordenado por prioridad)
 
-### TAREA 1 — Entrenar el modelo de IA (lo más importante)
+### TAREA 1 — Entrenar el modelo de IA ✅ HECHO (en web)
 
-**Qué es:** generar el modelo que clasifica los residuos. Sin esto, la app
-inventa los resultados.
+**Estado:** COMPLETADA para la web. El modelo ya está entrenado con las 6
+clases (incluida orgánico) y funcionando en el escáner web con clasificación
+real. Falta solo integrarlo en la app móvil (ver TAREA 4).
 
-**Cómo hacerlo (Google Colab, gratis):**
-1. Entra a https://colab.research.google.com e inicia sesión con Google.
-2. `Archivo → Subir cuaderno` → sube `ml/GreenNode_Entrenamiento.ipynb`.
-3. `Entorno de ejecución → Cambiar tipo de entorno → GPU (T4)`.
-4. `Entorno de ejecución → Ejecutar todas`. Tarda ~10-20 minutos.
-5. Al final se descargan 3 archivos:
-   - `waste_classifier_v1.tflite`  (para la app móvil)
-   - `tfjs_model.zip`              (para la web)
-   - `labels.json`                 (orden de las clases)
+**Qué se hizo:**
+1. Se entrenó en Google Colab con `ml/GreenNode_Entrenamiento.ipynb`.
+2. Dataset: `mostafaabla/garbage-classification` (12 clases, ~15.150 imágenes)
+   mapeadas a las 6 del proyecto.
+3. Se exportó a `waste_classifier_v1.tflite` + `labels.json`.
+4. Se copiaron a `web/public/model/`.
 
-**Dónde cargar el resultado:**
-- **Web:** descomprime `tfjs_model.zip` y copia su contenido
-  (`model.json` + archivos `.bin`) dentro de:
-  ```
-  web/public/model/
-  ```
-  Al recargar la web, el escáner detecta el modelo solo y pasa de
-  "simulación" a "modelo real". No hay que tocar código.
+**El modelo ya está en:** `web/public/model/waste_classifier_v1.tflite`
+
+**Para re-entrenar (si quieres mejorarlo):**
+1. Sube `ml/GreenNode_Entrenamiento.ipynb` a Colab.
+2. Activa GPU (T4) y ejecuta todas las celdas (~15-25 min).
+3. Descarga `waste_classifier_v1.tflite` y `labels.json` (paso 13).
+4. Cópialos a `web/public/model/` (sobrescribe) y recarga la web.
+   El código lee `labels.json` y se adapta solo al número de clases.
 
 - **Móvil:** copia `waste_classifier_v1.tflite` a `src/assets/models/`
   (ver TAREA 4).
 
-> Detalle importante: el dataset TrashNet **no trae la clase "orgánico"**.
-> El modelo se entrenará con 5 clases. Para tener orgánico, sube imágenes de
-> comida/compost a la carpeta `greennode_dataset/organic/` en Colab antes de
-> ejecutar el paso 5 del notebook. Está explicado en `ml/README.md`.
-
 ---
 
-### TAREA 2 — Montar el broker MQTT (red IoT real)
+### TAREA 2 — Red IoT / MQTT  🔶 PARCIAL (infraestructura lista y verificada)
 
-**Qué es:** el servidor que conecta los contenedores con la app. Hoy los datos
-de llenado son inventados.
+**Estado:** La infraestructura MQTT está IMPLEMENTADA Y VERIFICADA funcionando de forma aislada (sin necesidad de Android). Solo falta activar el cliente MQTT dentro de la app React Native, que requiere el entorno Android (ver TAREA 4/5).
 
-**Cómo hacerlo:**
-1. Instala un broker MQTT. La opción más simple es **Mosquitto** con Docker:
-   ```
-   docker run -it -p 1883:1883 eclipse-mosquitto
-   ```
-2. Crea un **simulador de contenedores** en Python que publique niveles de
-   llenado al broker (un script que cada X segundos envíe un mensaje al topic
-   `greennode/containers/{id}/fill`).
+**Lo que YA está hecho y probado:**
+- Broker MQTT (Eclipse Mosquitto) en Docker: `mqtt/docker-compose.yml` + `mqtt/mosquitto.conf`. Arranca con `cd mqtt && docker compose up -d` (puerto 1883, sin TLS, anónimo). Guía completa en `mqtt/README.md`.
+- Simulador de nodos IoT en Python: `simulation/iot_node_simulator.py`. Publica telemetría de los contenedores c-001..c-005 (fill QoS 0, status QoS 1, alertas QoS 2). Umbral de alerta 90% (severidad medium en [90,97], high en >=98).
+- Script de verificación end-to-end: `simulation/verify_e2e.py`. Confirmado en vivo: el suscriptor recibió los 5 mensajes de contenedores vía el broker → "Flujo Simulador → Broker → suscriptor CONFIRMADO".
+- Ajuste en `src/data/datasources/remote/mqtt/IoTService.ts` (suscripción a alertas con QoS 2).
+- Spec completo del trabajo en `.kiro/specs/mqtt-iot-integration/` (requirements, design, tasks).
 
-**Dónde conectar en el código:**
-- `src/data/datasources/remote/mqtt/MqttClient.ts` → busca los comentarios
-  `TODO: Descomentar cuando se instale sp-react-native-mqtt` y activa el código
-  real (está justo debajo, comentado).
-- Instala la librería: `npm install sp-react-native-mqtt`
-- La dirección del broker se configura en `src/shared/config/environment.ts`
-  (campo `mqttBrokerUrl`).
+**Cómo probar la red IoT (sin Android):**
+1. `cd mqtt && docker compose up -d`  (requiere Docker Desktop corriendo)
+2. En otra terminal: `pip install paho-mqtt` y `python simulation/verify_e2e.py --seconds 20`
+3. En otra terminal: `python simulation/iot_node_simulator.py --nodes 5 --interval 3`
+4. El verificador imprime los mensajes fill de c-001..c-005 y un resumen.
+
+**Lo que FALTA (requiere entorno Android):**
+- Instalar `npm install sp-react-native-mqtt` y activar los bloques TODO en `src/data/datasources/remote/mqtt/MqttClient.ts` para que la app use el cliente MQTT real en lugar del simulado. Está detallado en el spec (`.kiro/specs/mqtt-iot-integration/design.md`, sección MqttClient).
 
 ---
 
@@ -221,9 +212,9 @@ modelo mejora en la siguiente versión.
 
 ## 7. Resumen rápido (checklist)
 
-- [ ] **TAREA 1** — Entrenar modelo en Colab (`ml/GreenNode_Entrenamiento.ipynb`)
-      y copiar resultado a `web/public/model/` (web) y `src/assets/models/` (móvil)
-- [ ] **TAREA 2** — Montar broker MQTT + simulador Python de contenedores
+- [x] **TAREA 1** — Modelo de IA entrenado (6 clases) y funcionando en la web.
+      Falta solo integrarlo en móvil (parte de TAREA 4).
+- [~] **TAREA 2** — Red IoT/MQTT: infraestructura (broker + simulador + verificación) LISTA y probada. Falta activar el cliente en la app móvil (requiere Android).
 - [ ] **TAREA 3** — Autenticación real (Firebase)
 - [ ] **TAREA 4** — Cámara e IA reales en la app móvil (librerías nativas)
 - [ ] **TAREA 5** — Entorno Android (JDK 17 + Android Studio + SDK) para correr en móvil

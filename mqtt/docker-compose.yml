@@ -1,0 +1,10 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: greennode-mosquitto
+    ports:
+      - "1883:1883"        # MQTT nativo (simulador Python, app RN)
+      - "9001:9001"        # MQTT sobre WebSocket (dashboard web)
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped

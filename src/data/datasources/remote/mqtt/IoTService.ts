@@ -43,7 +43,7 @@ class IoTService {
       await mqttClient.subscribe(MqttTopics.allContainersFill(), 0);
 
       // Suscribirse a alertas del sistema
-      await mqttClient.subscribe(MqttTopics.systemAlerts(), 1);
+      await mqttClient.subscribe(MqttTopics.systemAlerts(), 2);
 
       // Registrar handler de mensajes entrantes
       this.messageSubscription = mqttClient.onMessage((topic, payload) => {

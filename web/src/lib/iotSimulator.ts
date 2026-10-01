@@ -28,20 +28,35 @@ export interface SystemAlert {
   timestamp: string;
 }
 
+/** Métricas de red agregadas que publica el simulador/broker. */
+export interface NetworkMetrics {
+  packetsSent: number;
+  packetsFailed: number;
+  avgFillLevel: number;
+  containersFull: number;
+  containersActive: number;
+  cycle: number;
+  totalNodes: number;
+  timestamp: string;
+}
+
 type ConnectionListener = (state: MqttConnectionState) => void;
 type FillListener = (containerId: string, fillLevel: number, status: ContainerStatus) => void;
 type AlertListener = (alert: SystemAlert) => void;
 type PublishListener = (count: number, lastAt: string) => void;
+type MetricsListener = (m: NetworkMetrics) => void;
 
 class IoTSimulator {
   private state = MqttConnectionState.DISCONNECTED;
   private timer: ReturnType<typeof setInterval> | null = null;
   private publishCount = 0;
+  private cycleCount = 0;
 
   private connectionListeners = new Set<ConnectionListener>();
   private fillListeners = new Set<FillListener>();
   private alertListeners = new Set<AlertListener>();
   private publishListeners = new Set<PublishListener>();
+  private metricsListeners = new Set<MetricsListener>();
 
   private containers: Container[] = [];
 
@@ -133,7 +148,30 @@ class IoTSimulator {
         log.warn(`[MQTT] ALERT ← greennode/system/alerts: ${alert.message}`);
         this.alertListeners.forEach((l) => l(alert));
       }
+
+      // Al final de cada tick, emitir métricas de red agregadas.
+      this.cycleCount++;
+      const containers = this.containers;
+      const total = containers.length;
+      const containersFull = containers.filter((x) => x.status === ContainerStatus.FULL).length;
+      const avgFillLevel =
+        total > 0 ? containers.reduce((sum, x) => sum + x.fillLevel, 0) / total : 0;
+      const metrics: NetworkMetrics = {
+        packetsSent: total,
+        packetsFailed: 0,
+        avgFillLevel: +avgFillLevel.toFixed(2),
+        containersFull,
+        containersActive: total - containersFull,
+        cycle: this.cycleCount,
+        totalNodes: total,
+        timestamp: new Date().toISOString(),
+      };
+      this.emitMetrics(metrics);
     }, 3000);
+  }
+
+  private emitMetrics(m: NetworkMetrics): void {
+    this.metricsListeners.forEach((l) => l(m));
   }
 
   private recordPublish(): void {
@@ -163,6 +201,10 @@ class IoTSimulator {
   onPublish(l: PublishListener): () => void {
     this.publishListeners.add(l);
     return () => this.publishListeners.delete(l);
+  }
+  onMetrics(l: MetricsListener): () => void {
+    this.metricsListeners.add(l);
+    return () => this.metricsListeners.delete(l);
   }
 }
 

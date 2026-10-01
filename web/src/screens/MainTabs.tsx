@@ -4,6 +4,7 @@ import { ScanTab } from './tabs/ScanTab';
 import { MapTab } from './tabs/MapTab';
 import { HistoryTab } from './tabs/HistoryTab';
 import { EducationTab } from './tabs/EducationTab';
+import { NetworkTab } from './tabs/NetworkTab';
 import { ProfileTab } from './tabs/ProfileTab';
 
 interface Props {
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'map', icon: '🗺️', label: 'Mapa' },
   { key: 'history', icon: '📋', label: 'Historial' },
   { key: 'education', icon: '📚', label: 'Aprender' },
+  { key: 'network', icon: '📡', label: 'Red' },
   { key: 'profile', icon: '👤', label: 'Perfil' },
 ];
 
@@ -29,6 +31,7 @@ export function MainTabs({ onLogout }: Props) {
           {activeTab === 'map' && <MapTab />}
           {activeTab === 'history' && <HistoryTab />}
           {activeTab === 'education' && <EducationTab />}
+          {activeTab === 'network' && <NetworkTab />}
           {activeTab === 'profile' && <ProfileTab onLogout={onLogout} />}
         </div>
         <div className="tab-bar">

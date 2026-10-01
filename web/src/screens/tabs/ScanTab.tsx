@@ -26,6 +26,7 @@ export function ScanTab() {
   // Modo del modelo: null = aún no sabemos, true = real (TFJS), false = simulado
   const [realModel, setRealModel] = useState<boolean | null>(null);
   const [lastWasReal, setLastWasReal] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
 
   // Detecta al montar si hay un modelo real disponible en /model/
   useEffect(() => {
@@ -281,8 +282,11 @@ export function ScanTab() {
       try {
         r = await classifyWithModel(imageSrc);
         usedReal = true;
+        setModelError(null);
       } catch (err) {
-        console.warn('[GreenNode] [TFJS] Falló el modelo real, usando simulación:', err);
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[GreenNode] [TFJS] Falló el modelo real, usando simulación:', err);
+        setModelError(msg);
         r = await classifyWasteSimulated();
       }
     } else {
@@ -321,6 +325,11 @@ export function ScanTab() {
           {realModel === true && <span className="model-tag real"> · modelo real</span>}
           {realModel === false && <span className="model-tag sim"> · simulación</span>}
         </p>
+        {modelError && (
+          <p className="model-error-banner">
+            ⚠️ El modelo real falló y se usó simulación. Motivo: {modelError}
+          </p>
+        )}
       </header>
 
       {/* Selector de modo */}
@@ -610,7 +619,9 @@ function ClassificationCard({
 
       <div className="prob-list">
         {result.probabilities.map((p, i) => {
-          const wt = Object.values(WasteType)[i];
+          // Usa las etiquetas reales del modelo si existen (5 o 6 clases);
+          // si no, cae al orden por defecto del enum (modo simulación).
+          const wt = result.probabilityLabels?.[i] ?? Object.values(WasteType)[i];
           return (
             <div className="prob-row" key={wt}>
               <span className="prob-label">
@@ -630,7 +641,7 @@ function ClassificationCard({
 
       <p className="inference-meta">
         ⚡ Inferencia en {result.inferenceTimeMs} ms ·{' '}
-        {usedRealModel ? 'modelo real (TFJS)' : 'simulación'} · publicado vía MQTT
+        {usedRealModel || result.probabilityLabels ? 'modelo real' : 'simulación'} · publicado vía MQTT
       </p>
     </div>
   );

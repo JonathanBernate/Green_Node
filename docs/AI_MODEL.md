@@ -4,6 +4,11 @@
 
 GreenNode utiliza un modelo de red neuronal convolucional (CNN) basado en **MobileNetV2** con transfer learning para clasificar residuos sólidos en 6 categorías a partir de imágenes capturadas con la cámara del dispositivo móvil.
 
+> **Estado: IMPLEMENTADO y funcionando.** El modelo ya está entrenado y
+> desplegado en la versión web (TensorFlow.js cargando el `.tflite`). Reconoce
+> las 6 clases, incluida orgánico. El notebook de entrenamiento reproducible
+> está en `ml/GreenNode_Entrenamiento.ipynb`.
+
 ---
 
 ## Especificaciones del Modelo
@@ -37,10 +42,24 @@ GreenNode utiliza un modelo de red neuronal convolucional (CNN) basado en **Mobi
 
 ## Dataset
 
-### Dataset base: TrashNet (Stanford)
+### Dataset usado: Garbage Classification (12 clases)
 
-- 2,527 imágenes en 6 categorías
-- Fuente: Yang, M., & Thung, G. (2016). Stanford University
+- **15,150 imágenes** en 12 clases (Kaggle: `mostafaabla/garbage-classification`)
+- Fotos más variadas y realistas que TrashNet (incluye imágenes tipo web scraping)
+- Las 12 clases se mapean a las 6 del proyecto:
+
+| Clase del dataset (12) | Clase GreenNode (6) |
+|------------------------|---------------------|
+| biological | organic |
+| plastic | plastic |
+| paper, cardboard | paper |
+| green-glass, brown-glass, white-glass | glass |
+| metal | metal |
+| battery, clothes, shoes, trash | special |
+
+> **Nota histórica:** el primer prototipo usó TrashNet (2,527 imágenes, 6 clases
+> sin orgánico). Se migró al dataset de 12 clases para incorporar la clase
+> orgánico y aumentar ~6x el volumen de datos.
 
 ### Augmentación de datos
 
@@ -56,8 +75,12 @@ data_augmentation = tf.keras.Sequential([
 ### Preprocesamiento
 
 1. Redimensionar a 224×224 píxeles
-2. Normalizar valores de píxel al rango [0, 1]
+2. Normalizar con `x / 127.5 - 1` → rango **[-1, 1]** (`mobilenet_v2.preprocess_input`)
 3. Formato RGB (3 canales)
+
+> El mismo preprocesamiento se aplica en la inferencia web
+> (`web/src/lib/tfClassifier.ts`) para que las predicciones sean consistentes
+> con el entrenamiento.
 
 ---
 
@@ -125,7 +148,54 @@ with open('waste_classifier_v1.tflite', 'wb') as f:
 
 ---
 
-## Inferencia en Dispositivo
+## Inferencia en la Web (implementada)
+
+La versión web ejecuta el modelo real con **TensorFlow.js + tfjs-tflite**,
+cargados desde CDN en tiempo de ejecución. El servicio está en
+`web/src/lib/tfClassifier.ts`.
+
+```
+Adjuntar imagen o capturar con cámara
+        │
+        ▼
+Preprocesar (resize 224x224, x/127.5 - 1)
+        │
+        ▼
+loadTFLiteModel('/model/waste_classifier_v1.tflite')
+        │  ← lee el orden de clases de /model/labels.json
+        ▼
+model.predict(input) → softmax
+        │
+        ▼
+Mapear índice → WasteType (según labels.json)
+        │
+        ▼
+ClassificationResult (+ validación del usuario)
+```
+
+**Fallback automático:** si `/model/waste_classifier_v1.tflite` no existe o la
+carga falla, la app usa una clasificación simulada, sin romperse. La UI indica
+el modo activo ("modelo real" vs "simulación") y muestra un banner con el
+motivo si el modelo real falla.
+
+**Binarios WASM locales:** `tfjs-tflite` necesita un runtime WebAssembly. Los
+binarios se sirven **localmente** desde `web/public/tflite-wasm/` (no desde un
+CDN externo), porque algunas redes corporativas bloquean el CDN. Esto se
+configura con `setWasmPath('/tflite-wasm/')` en `tfClassifier.ts`.
+
+> **Aprendizaje:** un síntoma de que el WASM no carga es el error
+> `Cannot read properties of undefined (reading '_malloc')`, que hace que la
+> app caiga silenciosamente a simulación (resultados aleatorios). Servir el
+> WASM localmente lo resuelve.
+
+**Ubicación de archivos:**
+- Modelo web: `web/public/model/waste_classifier_v1.tflite` + `labels.json`
+- Runtime WASM web: `web/public/tflite-wasm/`
+- Modelo móvil: `src/assets/models/` (con `react-native-fast-tflite`)
+
+---
+
+## Inferencia en Dispositivo Móvil
 
 ### Flujo en la app
 
@@ -166,6 +236,29 @@ Retornar ClassificationResult
 2. Objetos muy sucios o dañados reducen la confianza significativamente
 3. Iluminación deficiente afecta la precisión (se recomienda buena luz)
 4. Fondo con muchos objetos puede generar ruido
+5. **Domain gap:** el dataset son fotos de objetos relativamente centrados; con
+   fotos de cámara en entornos reales (fondos complejos, sombras) la precisión
+   baja respecto a la del conjunto de validación. El dataset de 12 clases
+   reduce este efecto frente a TrashNet, pero no lo elimina.
+6. La clase `special` agrupa categorías heterogéneas (baterías, ropa, zapatos,
+   trash), lo que la hace menos precisa que las clases homogéneas.
+7. **Observación en pruebas reales:** una imagen con **fondo blanco brillante
+   que ocupa gran parte del encuadre** tiende a clasificarse como papel/cartón
+   o vidrio (el fondo liso se confunde con esos materiales). Recomendaciones de
+   captura: acercar el objeto para que llene el encuadre, usar fondo neutro (no
+   blanco puro) y buena luz sin reflejos.
+
+> **Consistencia verificada:** con el modelo real cargado, la misma imagen
+> produce el mismo resultado de forma reproducible (p. ej. ~54% en repeticiones
+> sucesivas). Si los resultados varían mucho entre repeticiones de la misma
+> imagen, es señal de que se está usando la simulación (WASM no cargado).
+
+## Mejora continua (human-in-the-loop)
+
+La pantalla de escaneo pide al usuario validar cada clasificación
+(correcto/incorrecto + tipo real cuando se equivoca). Ese feedback puede
+acumularse para reentrenar versiones futuras del modelo con datos etiquetados
+por usuarios reales, cerrando el ciclo de mejora.
 
 ---
 

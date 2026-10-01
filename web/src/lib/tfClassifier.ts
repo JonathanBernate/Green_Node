@@ -26,6 +26,8 @@ const MIN_CONFIDENCE_THRESHOLD = 0.5;
 const TFJS_CDN = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
 const TFLITE_CDN =
   'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js';
+// Binarios WASM servidos LOCALMENTE (evita bloqueos de red corporativa al CDN).
+const WASM_LOCAL_PATH = '/tflite-wasm/';
 
 // tf y tflite se cargan globalmente desde el CDN (window.tf, window.tflite)
 declare global {
@@ -114,6 +116,9 @@ export async function loadModel(): Promise<any> {
 
     if (!window.tflite) throw new Error('tfjs-tflite no se cargó');
 
+    // Servir los binarios WASM localmente (el CDN puede estar bloqueado por red).
+    window.tflite.setWasmPath(WASM_LOCAL_PATH);
+
     labels = await loadLabels();
     model = await window.tflite.loadTFLiteModel(MODEL_URL);
 
@@ -175,6 +180,7 @@ export async function classifyWithModel(imageSrc: string): Promise<Classificatio
     wasteType,
     confidence,
     probabilities,
+    probabilityLabels: labels,
     isLowConfidence: confidence < MIN_CONFIDENCE_THRESHOLD,
     inferenceTimeMs,
     timestamp: new Date().toISOString(),
