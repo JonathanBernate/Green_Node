@@ -26,6 +26,10 @@ const MIN_CONFIDENCE_THRESHOLD = 0.5;
 const TFJS_CDN = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
 const TFLITE_CDN =
   'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js';
+// Los binarios WASM de tfjs-tflite viven en /wasm/ del paquete. Sin esta ruta,
+// el loader los busca relativos a la página (./tflite_web_api_cc_*.js) y falla
+// con "Cannot read properties of undefined (reading '_malloc')".
+const TFLITE_WASM_BASE = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/wasm/';
 
 // tf y tflite se cargan globalmente desde el CDN (window.tf, window.tflite)
 declare global {
@@ -102,25 +106,36 @@ export async function loadModel(): Promise<any> {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    if (!(await isModelAvailable())) {
-      console.warn('[GreenNode] [TFLite] Modelo no encontrado en /model/. Usando simulación.');
-      return null;
+    try {
+      if (!(await isModelAvailable())) {
+        console.warn('[GreenNode] [TFLite] Modelo no encontrado en /model/. Usando simulación.');
+        return null;
+      }
+      console.info('[GreenNode] [TFLite] Cargando TensorFlow desde CDN...');
+      const start = performance.now();
+
+      await loadScript(TFJS_CDN);
+      await loadScript(TFLITE_CDN);
+
+      if (!window.tflite) throw new Error('tfjs-tflite no se cargó');
+
+      // Apunta el loader WASM al paquete en el CDN (ver const TFLITE_WASM_BASE).
+      if (typeof window.tflite.setWasmPath === 'function') {
+        window.tflite.setWasmPath(TFLITE_WASM_BASE);
+      }
+
+      labels = await loadLabels();
+      model = await window.tflite.loadTFLiteModel(MODEL_URL);
+
+      console.info(
+        `[GreenNode] [TFLite] Modelo cargado en ${(performance.now() - start).toFixed(0)}ms`,
+      );
+      return model;
+    } catch (err) {
+      // Permite reintentar en el próximo intento de clasificación.
+      loadPromise = null;
+      throw err;
     }
-    console.info('[GreenNode] [TFLite] Cargando TensorFlow desde CDN...');
-    const start = performance.now();
-
-    await loadScript(TFJS_CDN);
-    await loadScript(TFLITE_CDN);
-
-    if (!window.tflite) throw new Error('tfjs-tflite no se cargó');
-
-    labels = await loadLabels();
-    model = await window.tflite.loadTFLiteModel(MODEL_URL);
-
-    console.info(
-      `[GreenNode] [TFLite] Modelo cargado en ${(performance.now() - start).toFixed(0)}ms`,
-    );
-    return model;
   })();
 
   return loadPromise;

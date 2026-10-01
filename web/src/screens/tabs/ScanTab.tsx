@@ -10,9 +10,10 @@ import {
 } from '../../lib/domain';
 import { useAppStore } from '../../lib/appStore';
 import { iotSimulator } from '../../lib/iotSimulator';
-import { isModelAvailable, classifyWithModel } from '../../lib/tfClassifier';
+import { isModelAvailable, classifyWithModel, loadModel } from '../../lib/tfClassifier';
+import { LiveScanner } from './LiveScanner';
 
-type Mode = 'camera' | 'upload';
+type Mode = 'camera' | 'upload' | 'live';
 type Status = 'idle' | 'classifying' | 'done';
 
 export function ScanTab() {
@@ -28,8 +29,16 @@ export function ScanTab() {
   const [lastWasReal, setLastWasReal] = useState(false);
 
   // Detecta al montar si hay un modelo real disponible en /model/
+  // y lo precarga en segundo plano para que la primera clasificación sea rápida.
   useEffect(() => {
-    isModelAvailable().then(setRealModel);
+    isModelAvailable().then((available) => {
+      setRealModel(available);
+      if (available) {
+        loadModel().catch((err) =>
+          console.warn('[GreenNode] [TFLite] Precarga fallida:', err),
+        );
+      }
+    });
   }, []);
 
   // Cámara
@@ -333,6 +342,12 @@ export function ScanTab() {
             📸 Escáner
           </button>
           <button
+            className={`mode-btn ${mode === 'live' ? 'active' : ''}`}
+            onClick={() => switchMode('live')}
+          >
+            ⚡ En vivo
+          </button>
+          <button
             className={`mode-btn ${mode === 'upload' ? 'active' : ''}`}
             onClick={() => switchMode('upload')}
           >
@@ -349,7 +364,9 @@ export function ScanTab() {
         onChange={handleFileInput}
       />
 
-      <div className="scan-area">
+      {mode === 'live' && status !== 'done' && <LiveScanner />}
+
+      <div className="scan-area" style={mode === 'live' ? { display: 'none' } : undefined}>
         {status === 'done' && result ? (
           <ClassificationCard
             result={result}
@@ -425,7 +442,7 @@ export function ScanTab() {
         )}
       </div>
 
-      <div className="scan-actions">
+      <div className="scan-actions" style={mode === 'live' ? { display: 'none' } : undefined}>
         {status === 'done' ? (
           <button className="btn btn-outline btn-large" onClick={reset}>
             Escanear otro
