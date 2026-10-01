@@ -4,6 +4,7 @@ import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { ContainersPage } from '../pages/Containers/ContainersPage';
 import { ReportsPage } from '../pages/Reports/ReportsPage';
 import { NetworkPage } from '../pages/Network/NetworkPage';
+import { CollectionPointsPage } from '../pages/CollectionPoints/CollectionPointsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { MorePage } from '../pages/MorePage';
 import { ScanTab } from '../screens/tabs/ScanTab';
@@ -19,6 +20,7 @@ export function AppRoutes() {
         <Route path="classification" element={<ScanTab />} />
         <Route path="containers" element={<ContainersPage />} />
         <Route path="map" element={<MapTab />} />
+        <Route path="collection-points" element={<CollectionPointsPage />} />
         <Route path="network" element={<NetworkPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="history" element={<HistoryTab />} />
