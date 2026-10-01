@@ -181,6 +181,33 @@ export interface Lesson {
   icon: string;
   durationMin: number;
   category: string;
+  categoryId: string;
   summary: string;
+  points: number;
+  hasQuiz: boolean;
   completed: boolean;
+  /** Mejor puntaje del cuestionario (0-100); null si aún no lo intentas. */
+  score: number | null;
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+}
+
+export interface LessonDetail extends Lesson {
+  /** Markdown. */
+  content: string;
+  questions: QuizQuestion[];
+}
+
+export interface QuizResult {
+  score: number;
+  passed: boolean;
+  passScore: number;
+  pointsEarned: number;
+  results: { questionId: string; correct: boolean; correctOption: number; explanation: string | null }[];
+  totalPoints?: number;
+  level?: number;
 }

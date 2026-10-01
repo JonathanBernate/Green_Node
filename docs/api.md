@@ -9,6 +9,11 @@ Con `VITE_USE_MOCK_DATA=true` (por defecto) el frontend no llama a los endpoints
 |---|---|---|---|
 | ✅ | `POST /api/login` `{email,password}` | `authService.login` | `{user:{id,name,email,points,level}, token}` |
 | ✅ | `GET /api/user` · `POST /api/logout` | `authService` | — |
+| ✅ | `GET /api/lessons` | `lessonService.list` | `Lesson[]` (solo publicadas, con `completed` y `score` del usuario) |
+| ✅ | `GET /api/lessons/{id}` | `lessonService.get` | `Lesson` + `content` (Markdown) + `questions[]` (sin respuesta correcta) |
+| ✅ | `POST /api/lessons/{id}/submit` `{answers:{<questionId>:<índice>}}` | `lessonService.submit` | `{score,passed,passScore,pointsEarned,results[],totalPoints,level}` |
+| ✅ | `DELETE /api/lessons/{id}/progress` | `lessonService.reset` | `{message}` |
+| ✅ | `GET /api/lesson-categories` | — | `{id,name,slug,icon}[]` |
 | ⏳ | `GET /up` (health) | `useConnectionStatus` | 200 si el servidor está vivo |
 | ⏳ | `POST /api/classification` (multipart `image`) | `classificationService.classifyImage` | `{class, confidence, model, inference_time_ms}` |
 | ⏳ | `POST /api/events` | `classificationService.sendEvent` | 201 |
@@ -49,3 +54,10 @@ un mensaje comprensible (`toUserMessage`) y registra el detalle técnico solo en
 - Restringir CORS (`allowed_origins`) al origen del frontend; hoy es `*`.
 - `APP_DEBUG=false` fuera de desarrollo.
 - Validar y autorizar todos los endpoints nuevos (no confiar en datos del cliente).
+
+## Aprendizaje (lecciones)
+
+CRUD de contenido en el panel **Filament** (`/admin` → *Aprendizaje*: Lecciones, Categorías y Preguntas del cuestionario).
+Tablas: `lesson_categories`, `lessons`, `quiz_questions`, `lesson_progress`. Aprueba con ≥ 70 %; los puntos de la
+lección se otorgan **una sola vez** y se suman a los 10 pts por depósito (`User::totalPoints()`).
+Instalación: `php artisan migrate && php artisan db:seed --class=LessonSeeder`.

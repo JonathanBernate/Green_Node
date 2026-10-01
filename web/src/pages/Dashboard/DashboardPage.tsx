@@ -3,6 +3,7 @@ import { useAuth } from '../../app/AuthProvider';
 import { DataSourceTag } from '../../components/common/DataSourceTag';
 import { Kpi } from '../../components/common/Kpi';
 import { Icon } from '../../components/Icon';
+import { LearningCard } from '../../components/learn/LearningCard';
 import { Donut, LineChart } from '../../components/metrics/charts';
 import { config } from '../../config/env';
 import { useAlerts, useContainers, useNetworkSnapshot } from '../../hooks/useData';
@@ -90,6 +91,8 @@ export function DashboardPage() {
           <div className="hero-track"><div className="hero-fill" style={{ width: `${progress}%` }} /></div>
           <p className="hero-next">{points} / {nextLevelPoints} puntos para el nivel {level + 1}</p>
         </section>
+
+        <LearningCard />
 
         <section className="panel">
           <h3 className="section-title">Estado de contenedores</h3>

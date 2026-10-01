@@ -47,4 +47,20 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(Deposit::class);
     }
+
+    public function lessonProgress()
+    {
+        return $this->hasMany(LessonProgress::class);
+    }
+
+    /** Puntos totales: 10 por depósito + puntos ganados en lecciones. */
+    public function totalPoints(): int
+    {
+        return $this->deposits()->count() * 10 + (int) $this->lessonProgress()->sum('points_earned');
+    }
+
+    public function level(): int
+    {
+        return max(1, intdiv($this->totalPoints(), 50) + 1);
+    }
 }

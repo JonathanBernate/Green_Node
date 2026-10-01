@@ -34,8 +34,8 @@ class AuthController extends Controller
                 'id' => (string) $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'points' => 0,
-                'level' => 1,
+                'points' => $user->totalPoints(),
+                'level' => $user->level(),
             ],
             'token' => $token,
         ]);
@@ -49,8 +49,8 @@ class AuthController extends Controller
             'id' => (string) $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'points' => $user->deposits()->count() * 10,
-            'level' => max(1, intdiv($user->deposits()->count(), 5) + 1),
+            'points' => $user->totalPoints(),
+            'level' => $user->level(),
         ]);
     }
 

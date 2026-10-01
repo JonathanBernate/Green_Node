@@ -1,52 +1,28 @@
-/** Contenido educativo de ejemplo (estático). */
-import type { Lesson } from '../lib/domain';
+/**
+ * Contenido educativo de SIMULACIÓN. Es una copia del seeder del backend
+ * (admin/database/seeders/LessonSeeder.php) para poder usar la sección sin servidor.
+ */
+import data from '../data/lessons.json';
 
-export function getLessons(): Lesson[] {
-  return [
-    {
-      id: 'l-1',
-      title: '¿Por qué separar los residuos?',
-      icon: '🌍',
-      durationMin: 3,
-      category: 'Fundamentos',
-      summary: 'Entiende el impacto ambiental de la separación en origen.',
-      completed: true,
-    },
-    {
-      id: 'l-2',
-      title: 'Los 6 tipos de residuos',
-      icon: '🗂️',
-      durationMin: 5,
-      category: 'Clasificación',
-      summary: 'Aprende a distinguir orgánico, plástico, papel, vidrio, metal y especial.',
-      completed: true,
-    },
-    {
-      id: 'l-3',
-      title: 'Reciclaje de plásticos',
-      icon: '♻️',
-      durationMin: 4,
-      category: 'Clasificación',
-      summary: 'Códigos de reciclaje y qué plásticos sí se reciclan.',
-      completed: false,
-    },
-    {
-      id: 'l-4',
-      title: 'Compostaje en casa',
-      icon: '🍃',
-      durationMin: 6,
-      category: 'Práctica',
-      summary: 'Convierte tus residuos orgánicos en abono.',
-      completed: false,
-    },
-    {
-      id: 'l-5',
-      title: 'Residuos especiales y peligrosos',
-      icon: '⚠️',
-      durationMin: 4,
-      category: 'Seguridad',
-      summary: 'Cómo manejar pilas, electrónicos y medicamentos.',
-      completed: false,
-    },
-  ];
+export interface MockQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctOption: number;
+  explanation: string;
 }
+
+export interface MockLesson {
+  id: string;
+  title: string;
+  icon: string;
+  category: string;
+  categoryId: string;
+  summary: string;
+  durationMin: number;
+  points: number;
+  content: string;
+  questions: MockQuestion[];
+}
+
+export const MOCK_LESSONS = data as MockLesson[];
