@@ -11,8 +11,9 @@ export function HistoryTab() {
   const { history } = useAppStore();
 
   const total = history.length;
+  const modelled = history.filter((r) => !r.simulated);
   const avgConfidence =
-    total > 0 ? history.reduce((s, r) => s + r.confidence, 0) / total : 0;
+    modelled.length > 0 ? modelled.reduce((s, r) => s + r.confidence, 0) / modelled.length : 0;
 
   const countByType = history.reduce<Record<string, number>>((acc, r) => {
     acc[r.wasteType] = (acc[r.wasteType] ?? 0) + 1;
@@ -96,6 +97,7 @@ export function HistoryTab() {
               <div className="history-info">
                 <p className="history-type" style={{ color: WASTE_TYPE_COLORS[r.wasteType] }}>
                   {WASTE_TYPE_LABELS[r.wasteType]}
+                  {r.simulated && <span className="fb-badge bad" title="Resultado aleatorio de demostración">simulado</span>}
                   {r.feedback === 'correct' && (
                     <span className="fb-badge ok" title={r.autoConfirmed ? 'Auto-confirmada' : 'Validada correcta'}>
                       {r.autoConfirmed ? '✓ auto' : '✓'}

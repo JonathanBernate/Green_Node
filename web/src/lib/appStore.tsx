@@ -11,8 +11,8 @@ import {
   ClassificationResult,
   ClassificationFeedback,
   WasteType,
-  getInitialContainers,
 } from './domain';
+import { getInitialContainers } from '../mocks/containers';
 import { iotSimulator, MqttConnectionState, SystemAlert } from './iotSimulator';
 
 interface AppState {
@@ -33,9 +33,19 @@ interface AppState {
 
 const AppContext = createContext<AppState | null>(null);
 
+const HISTORY_KEY = 'greennode.history';
+
+function loadHistory(): ClassificationResult[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as ClassificationResult[];
+  } catch {
+    return [];
+  }
+}
+
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [containers, setContainers] = useState<Container[]>(() => getInitialContainers());
-  const [history, setHistory] = useState<ClassificationResult[]>([]);
+  const [history, setHistory] = useState<ClassificationResult[]>(() => loadHistory());
   const [connectionState, setConnectionState] = useState<MqttConnectionState>(
     MqttConnectionState.DISCONNECTED,
   );
@@ -75,6 +85,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       offPub();
     };
   }, []);
+
+  // Persistencia del historial (últimos 200)
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [history]);
 
   const addClassification = (r: ClassificationResult) => {
     setHistory((prev) => [r, ...prev]);

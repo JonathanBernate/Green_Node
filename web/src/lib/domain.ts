@@ -77,6 +77,10 @@ export interface ClassificationResult {
   autoConfirmed: boolean;
   /** Tipo real indicado por el usuario cuando la clasificación fue incorrecta. */
   correctedType: WasteType | null;
+  /** true si el resultado NO proviene de un modelo (fallback de demostración). */
+  simulated?: boolean;
+  /** Nombre del modelo que produjo la predicción, si se conoce. */
+  model?: string;
 }
 
 /**
@@ -110,6 +114,8 @@ export async function classifyWasteSimulated(): Promise<ClassificationResult> {
     feedback: null,
     autoConfirmed: false,
     correctedType: null,
+    simulated: true,
+    model: 'simulación (aleatorio)',
   };
 }
 
@@ -138,6 +144,12 @@ export interface Container {
   wasteTypes: WasteType[];
   capacity: number; // litros
   lastUpdated: string;
+  /** Batería del nodo (0-100), si el nodo la reporta. */
+  batteryLevel?: number;
+  /** Gateway al que reporta el nodo. */
+  gatewayId?: string;
+  /** true si es un nodo virtual (simulación). */
+  virtual?: boolean;
 }
 
 export type FillLevelCategory = 'empty' | 'quarter' | 'half' | 'threeQuarters' | 'full';
@@ -162,67 +174,6 @@ export function getFillLevelColor(level: number): string {
   return FILL_LEVEL_COLORS[getFillLevelCategory(level)];
 }
 
-// Contenedores iniciales simulados (nodos IoT de la red)
-export function getInitialContainers(): Container[] {
-  return [
-    {
-      id: 'c-001',
-      address: 'Calle 45 # 12-30, Barrio Centro',
-      latitude: 4.6018,
-      longitude: -74.0721,
-      fillLevel: 32,
-      status: ContainerStatus.ACTIVE,
-      wasteTypes: [WasteType.PLASTIC, WasteType.PAPER, WasteType.METAL],
-      capacity: 240,
-      lastUpdated: new Date().toISOString(),
-    },
-    {
-      id: 'c-002',
-      address: 'Carrera 7 # 32-16, Barrio La Soledad',
-      latitude: 4.6280,
-      longitude: -74.0660,
-      fillLevel: 68,
-      status: ContainerStatus.ACTIVE,
-      wasteTypes: [WasteType.ORGANIC, WasteType.GLASS],
-      capacity: 360,
-      lastUpdated: new Date().toISOString(),
-    },
-    {
-      id: 'c-003',
-      address: 'Av. Caracas # 50-20, Chapinero',
-      latitude: 4.6410,
-      longitude: -74.0630,
-      fillLevel: 91,
-      status: ContainerStatus.FULL,
-      wasteTypes: [WasteType.PLASTIC, WasteType.GLASS, WasteType.METAL],
-      capacity: 240,
-      lastUpdated: new Date().toISOString(),
-    },
-    {
-      id: 'c-004',
-      address: 'Calle 100 # 15-40, Usaquén',
-      latitude: 4.6860,
-      longitude: -74.0480,
-      fillLevel: 12,
-      status: ContainerStatus.ACTIVE,
-      wasteTypes: [WasteType.ORGANIC, WasteType.PAPER],
-      capacity: 480,
-      lastUpdated: new Date().toISOString(),
-    },
-    {
-      id: 'c-005',
-      address: 'Cra 30 # 45-03, Teusaquillo',
-      latitude: 4.6320,
-      longitude: -74.0850,
-      fillLevel: 54,
-      status: ContainerStatus.MAINTENANCE,
-      wasteTypes: [WasteType.SPECIAL],
-      capacity: 120,
-      lastUpdated: new Date().toISOString(),
-    },
-  ];
-}
-
 // --- Lecciones educativas ---
 export interface Lesson {
   id: string;
@@ -232,54 +183,4 @@ export interface Lesson {
   category: string;
   summary: string;
   completed: boolean;
-}
-
-export function getLessons(): Lesson[] {
-  return [
-    {
-      id: 'l-1',
-      title: '¿Por qué separar los residuos?',
-      icon: '🌍',
-      durationMin: 3,
-      category: 'Fundamentos',
-      summary: 'Entiende el impacto ambiental de la separación en origen.',
-      completed: true,
-    },
-    {
-      id: 'l-2',
-      title: 'Los 6 tipos de residuos',
-      icon: '🗂️',
-      durationMin: 5,
-      category: 'Clasificación',
-      summary: 'Aprende a distinguir orgánico, plástico, papel, vidrio, metal y especial.',
-      completed: true,
-    },
-    {
-      id: 'l-3',
-      title: 'Reciclaje de plásticos',
-      icon: '♻️',
-      durationMin: 4,
-      category: 'Clasificación',
-      summary: 'Códigos de reciclaje y qué plásticos sí se reciclan.',
-      completed: false,
-    },
-    {
-      id: 'l-4',
-      title: 'Compostaje en casa',
-      icon: '🍃',
-      durationMin: 6,
-      category: 'Práctica',
-      summary: 'Convierte tus residuos orgánicos en abono.',
-      completed: false,
-    },
-    {
-      id: 'l-5',
-      title: 'Residuos especiales y peligrosos',
-      icon: '⚠️',
-      durationMin: 4,
-      category: 'Seguridad',
-      summary: 'Cómo manejar pilas, electrónicos y medicamentos.',
-      completed: false,
-    },
-  ];
 }

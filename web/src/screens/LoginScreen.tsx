@@ -1,8 +1,9 @@
 import React, { useState, FormEvent } from 'react';
 import { Icon } from '../components/Icon';
+import { ApiError, authService, AuthUser } from '../services/api';
 
 interface Props {
-  onLogin: (user: { id: string; name: string; email: string; points: number; level: number }, token: string) => void;
+  onLogin: (user: AuthUser, token: string) => void;
 }
 
 export function LoginScreen({ onLogin }: Props) {
@@ -34,24 +35,12 @@ export function LoginScreen({ onLogin }: Props) {
     setLoading(true);
     setErrors({});
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
+      const { user, token } = await authService.login(email.trim(), password);
+      onLogin(user, token);
+    } catch (err) {
+      setErrors({
+        general: err instanceof ApiError ? err.userMessage : 'No fue posible iniciar sesión. Inténtalo nuevamente.',
       });
-      const data = await response.json() as Record<string, unknown>;
-      if (!response.ok) {
-        const errors = data?.errors as Record<string, string[]> | undefined;
-        const message = (data?.message as string) || errors?.email?.[0] || 'Credenciales incorrectas';
-        setErrors({ general: message });
-        setLoading(false);
-        return;
-      }
-      localStorage.setItem('auth_token', data.token as string);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      onLogin(data.user as { id: string; name: string; email: string; points: number; level: number }, data.token as string);
-    } catch {
-      setErrors({ general: 'Error al conectar con el servidor' });
     } finally {
       setLoading(false);
     }
@@ -77,10 +66,11 @@ export function LoginScreen({ onLogin }: Props) {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="input-group">
-            <label className="input-label">Correo electrónico</label>
+            <label className="input-label" htmlFor="login-email">Correo electrónico</label>
             <div className={`input-wrap ${errors.email ? 'error' : ''}`}>
               <Icon name="mail" size={18} />
               <input
+                id="login-email"
                 type="email"
                 className="input-field"
                 value={email}
@@ -89,14 +79,15 @@ export function LoginScreen({ onLogin }: Props) {
                 autoComplete="email"
               />
             </div>
-            {errors.email && <p className="error-text">{errors.email}</p>}
+            {errors.email && <p className="error-text" role="alert">{errors.email}</p>}
           </div>
 
           <div className="input-group">
-            <label className="input-label">Contraseña</label>
+            <label className="input-label" htmlFor="login-password">Contraseña</label>
             <div className={`input-wrap ${errors.password ? 'error' : ''}`}>
               <Icon name="lock" size={18} />
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 className="input-field"
                 value={password}
@@ -113,10 +104,10 @@ export function LoginScreen({ onLogin }: Props) {
                 <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} />
               </button>
             </div>
-            {errors.password && <p className="error-text">{errors.password}</p>}
+            {errors.password && <p className="error-text" role="alert">{errors.password}</p>}
           </div>
 
-          {errors.general && <div className="alert-box">{errors.general}</div>}
+          {errors.general && <div className="alert-box" role="alert">{errors.general}</div>}
 
           <button type="button" className="forgot-link">
             ¿Olvidaste tu contraseña?

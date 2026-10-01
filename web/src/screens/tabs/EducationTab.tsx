@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { getLessons, Lesson } from '../../lib/domain';
+import type { Lesson } from '../../lib/domain';
+import { getLessons } from '../../mocks/lessons';
 
 export function EducationTab() {
   const [lessons, setLessons] = useState<Lesson[]>(() => getLessons());

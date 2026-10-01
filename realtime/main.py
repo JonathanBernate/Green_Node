@@ -40,7 +40,7 @@ async def predict(file: UploadFile = File(...)):
         result = await asyncio.to_thread(state["clf"].predict_bytes, data)
     except Exception:
         raise HTTPException(status_code=400, detail="Imagen inválida")
-    return {**result, "inference_ms": round((time.perf_counter() - t0) * 1000)}
+    return {**result, "inference_ms": round((time.perf_counter() - t0) * 1000), "model": state["clf"].model_id}
 
 
 @app.websocket("/ws/predict")
@@ -65,6 +65,7 @@ async def ws_predict(ws: WebSocket):
                 t0 = time.perf_counter()
                 result = await asyncio.to_thread(state["clf"].predict_bytes, data)
                 result["inference_ms"] = round((time.perf_counter() - t0) * 1000)
+                result["model"] = state["clf"].model_id
                 await ws.send_json(result)
             except Exception as e:
                 await ws.send_json({"error": str(e)})

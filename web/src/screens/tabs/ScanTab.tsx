@@ -9,7 +9,8 @@ import {
   WasteType,
 } from '../../lib/domain';
 import { useAppStore } from '../../lib/appStore';
-import { iotSimulator } from '../../lib/iotSimulator';
+import { appMetrics } from '../../services/api';
+import { EventPanel } from '../../components/waste/EventPanel';
 import { isModelAvailable, classifyWithModel, loadModel } from '../../lib/tfClassifier';
 import { LiveScanner } from './LiveScanner';
 import { Icon } from '../../components/Icon';
@@ -304,7 +305,7 @@ export function ScanTab() {
     setResult(r);
     setStatus('done');
     addClassification(r);
-    iotSimulator.publishClassification(r.wasteType, r.confidence);
+    if (!r.simulated) appMetrics.record('inference', r.inferenceTimeMs, true);
   };
 
   const reset = () => {
@@ -559,6 +560,11 @@ function ClassificationCard({
         Confianza: <strong>{(result.confidence * 100).toFixed(1)}%</strong>
         {result.isLowConfidence && <span className="low-conf"> · baja confianza</span>}
       </p>
+      {result.simulated && (
+        <div className="notice-sim" role="alert">
+          <b>RESULTADO SIMULADO.</b> No hay modelo cargado: esta categoría es aleatoria y no es una predicción real.
+        </div>
+      )}
       <p className="disposal-tip">💡 {WASTE_DISPOSAL_TIP[result.wasteType]}</p>
 
       {/* --- Validación del usuario --- */}
@@ -647,9 +653,16 @@ function ClassificationCard({
         })}
       </div>
 
+      <EventPanel
+        classification={result.wasteType}
+        confidence={result.confidence}
+        model={result.model}
+        inferenceTimeMs={result.inferenceTimeMs}
+        disabledReason={result.simulated ? 'Los resultados simulados no se envían al sistema.' : undefined}
+      />
+
       <p className="inference-meta">
-        ⚡ Inferencia en {result.inferenceTimeMs} ms ·{' '}
-        {usedRealModel ? 'modelo real (TFJS)' : 'simulación'} · publicado vía MQTT
+        Inferencia en {result.inferenceTimeMs} ms · {result.model ?? (usedRealModel ? 'modelo real' : 'simulación')}
       </p>
     </div>
   );

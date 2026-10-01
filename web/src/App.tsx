@@ -1,44 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider, useAuth } from './app/AuthProvider';
+import { AppRoutes } from './app/routes';
+import { AppStoreProvider } from './lib/appStore';
 import { LoginScreen } from './screens/LoginScreen';
-import { MainTabs } from './screens/MainTabs';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  points: number;
-  level: number;
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 5000 } },
+});
+
+function Gate() {
+  const { user, login } = useAuth();
+  if (!user) return <LoginScreen onLogin={login} />;
+  return (
+    <AppStoreProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AppStoreProvider>
+  );
 }
 
 export function App() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('auth_user');
-    const savedToken = localStorage.getItem('auth_token');
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('auth_user');
-        localStorage.removeItem('auth_token');
-      }
-    }
-  }, []);
-
-  const handleLogin = (userData: User, _token: string) => {
-    setUser(userData);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('auth_token');
-    setUser(null);
-  };
-
-  if (user) {
-    return <MainTabs user={user} onLogout={handleLogout} />;
-  }
-
-  return <LoginScreen onLogin={handleLogin} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }

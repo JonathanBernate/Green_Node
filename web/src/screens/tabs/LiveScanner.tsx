@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { EventPanel } from '../../components/waste/EventPanel';
+import { appMetrics } from '../../services/api';
 import {
   GROUP_COLORS,
   GROUP_ICONS,
@@ -33,6 +35,7 @@ export function LiveScanner() {
   const [status, setStatus] = useState<LiveStatus>('connecting');
   const [shown, setShown] = useState<Shown | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
+  const [model, setModel] = useState<string | undefined>();
   const [top3, setTop3] = useState<LivePrediction['top3']>([]);
 
   const clientRef = useRef<LiveClassifierClient | null>(null);
@@ -42,6 +45,8 @@ export function LiveScanner() {
 
   const handleResult = (p: LivePrediction) => {
     setLatency(p.inference_ms);
+    appMetrics.record('inference:live', p.inference_ms, true);
+    if (p.model) setModel(p.model);
     setTop3(p.top3);
     if (p.confidence < MIN_CONFIDENCE) {
       candidateRef.current = { label: '', count: 0 };
@@ -155,10 +160,20 @@ export function LiveScanner() {
       </div>
 
       <p className="live-status">
-        {status === 'open' && <>🟢 IA conectada{latency !== null && ` · ${latency} ms`}</>}
+        {status === 'open' && <>🟢 IA conectada{model && ` · ${model}`}{latency !== null && ` · ${latency} ms`}</>}
         {status === 'connecting' && <>🟡 Conectando con el servicio de IA...</>}
         {status === 'closed' && <>🔴 Sin conexión con el servicio de IA (reintentando)</>}
       </p>
+
+      {shown && (
+        <EventPanel
+          key={shown.label}
+          classification={shown.label}
+          confidence={shown.confidence}
+          model={model}
+          inferenceTimeMs={latency ?? undefined}
+        />
+      )}
 
       {top3.length > 0 && (
         <div className="prob-list">

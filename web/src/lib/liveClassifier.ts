@@ -13,6 +13,7 @@ export interface LivePrediction {
   waste_type: string | null;
   top3: { label: string; confidence: number; group: WasteGroup }[];
   inference_ms: number;
+  model?: string;
 }
 
 export const GROUP_LABELS: Record<WasteGroup, string> = {

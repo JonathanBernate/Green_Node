@@ -191,6 +191,8 @@ export async function classifyWithModel(imageSrc: string): Promise<Classificatio
     confidence,
     probabilities,
     isLowConfidence: confidence < MIN_CONFIDENCE_THRESHOLD,
+    simulated: false,
+    model: 'MobileNetV2 (TFLite, navegador)',
     inferenceTimeMs,
     timestamp: new Date().toISOString(),
     feedback: null,

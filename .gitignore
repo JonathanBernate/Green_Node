@@ -76,3 +76,7 @@ yarn-error.log
 
 realtime/.venv/
 __pycache__/
+
+# Variables locales del frontend web (no versionar)
+web/.env.local
+web/.env.*.local
