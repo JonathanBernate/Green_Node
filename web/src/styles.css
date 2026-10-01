@@ -289,7 +289,6 @@ html, body, #root {
 
 .tabs-content {
   flex: 1;
-<<<<<<< HEAD
   display: flex;
   overflow-y: auto;
   background: var(--neutral-50);
@@ -298,9 +297,6 @@ html, body, #root {
 .tabs-content h2 {
   font-size: 20px;
   color: var(--neutral-600);
-=======
-  overflow-y: auto;
->>>>>>> feature/fredy
 }
 
 .tab-bar {
@@ -333,7 +329,6 @@ html, body, #root {
   color: var(--primary-500);
 }
 
-<<<<<<< HEAD
 /* ===== Profile Page ===== */
 .profile-page {
   width: 100%;
@@ -565,7 +560,10 @@ html, body, #root {
   color: var(--error);
   font-size: 16px;
   font-weight: 600;
-=======
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
 /* ============================================================
    Dashboard screens (tabs)
    ============================================================ */
@@ -638,12 +636,10 @@ html, body, #root {
   font-size: 14px;
   font-weight: 600;
   color: var(--neutral-600);
->>>>>>> feature/fredy
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
-<<<<<<< HEAD
 .profile-logout-btn:hover {
   background: #FEE2E2;
 }
@@ -654,7 +650,8 @@ html, body, #root {
   font-size: 12px;
   color: var(--neutral-400);
   margin: 0;
-=======
+}
+
 .mode-btn.active {
   background: white;
   color: var(--primary-700);
@@ -1708,5 +1705,4 @@ html, body, #root {
   font-size: 12px;
   color: var(--neutral-400);
   margin-top: 16px;
->>>>>>> feature/fredy
 }

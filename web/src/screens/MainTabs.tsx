@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
+import { AppStoreProvider } from '../lib/appStore';
 import { HomeScreen } from './HomeScreen';
-import { ProfileScreen } from './ProfileScreen';
+import { ScanTab } from './tabs/ScanTab';
+import { MapTab } from './tabs/MapTab';
+import { HistoryTab } from './tabs/HistoryTab';
+import { EducationTab } from './tabs/EducationTab';
+import { ProfileTab } from './tabs/ProfileTab';
 
 interface User {
   id: string;
@@ -10,14 +14,6 @@ interface User {
   points: number;
   level: number;
 }
-=======
-import { AppStoreProvider } from '../lib/appStore';
-import { ScanTab } from './tabs/ScanTab';
-import { MapTab } from './tabs/MapTab';
-import { HistoryTab } from './tabs/HistoryTab';
-import { EducationTab } from './tabs/EducationTab';
-import { ProfileTab } from './tabs/ProfileTab';
->>>>>>> feature/fredy
 
 interface Props {
   user: User;
@@ -29,72 +25,20 @@ const TABS = [
   { key: 'scan', icon: '📷', label: 'Escanear' },
   { key: 'map', icon: '🗺️', label: 'Mapa' },
   { key: 'history', icon: '📋', label: 'Historial' },
+  { key: 'education', icon: '📚', label: 'Aprende' },
   { key: 'profile', icon: '👤', label: 'Perfil' },
 ];
 
-<<<<<<< HEAD
-function ScanView() {
-  return (
-    <div style={{ padding: 20, textAlign: 'center', paddingTop: 60 }}>
-      <p style={{ fontSize: 48 }}>📷</p>
-      <h2>Escanear</h2>
-      <p style={{ color: '#757575' }}>Apunta la cámara a un residuo para clasificarlo</p>
-    </div>
-  );
-}
-
-function MapView() {
-  return (
-    <div style={{ padding: 20, textAlign: 'center', paddingTop: 60 }}>
-      <p style={{ fontSize: 48 }}>🗺️</p>
-      <h2>Mapa</h2>
-      <p style={{ color: '#757575' }}>Encuentra contenedores cercanos</p>
-    </div>
-  );
-}
-
-function HistoryView() {
-  return (
-    <div style={{ padding: 20, textAlign: 'center', paddingTop: 60 }}>
-      <p style={{ fontSize: 48 }}>📋</p>
-      <h2>Historial</h2>
-      <p style={{ color: '#757575' }}>Tu historial de depósitos aparecerá aquí</p>
-    </div>
-  );
-}
-
 export function MainTabs({ user, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('home');
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomeScreen userName={user.name} userLevel={user.level} userPoints={user.points} />;
-      case 'scan':
-        return <ScanView />;
-      case 'map':
-        return <MapView />;
-      case 'history':
-        return <HistoryView />;
-      case 'profile':
-        return <ProfileScreen user={user} onLogout={onLogout} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="tabs-page">
-      <div className="tabs-content">
-        {renderContent()}
-=======
-export function MainTabs({ onLogout }: Props) {
-  const [activeTab, setActiveTab] = useState('scan');
 
   return (
     <AppStoreProvider>
       <div className="tabs-page">
         <div className="tabs-content">
+          {activeTab === 'home' && (
+            <HomeScreen userName={user.name} userLevel={user.level} userPoints={user.points} />
+          )}
           {activeTab === 'scan' && <ScanTab />}
           {activeTab === 'map' && <MapTab />}
           {activeTab === 'history' && <HistoryTab />}
@@ -113,7 +57,6 @@ export function MainTabs({ onLogout }: Props) {
             </button>
           ))}
         </div>
->>>>>>> feature/fredy
       </div>
     </AppStoreProvider>
   );
