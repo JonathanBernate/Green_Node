@@ -12,6 +12,7 @@ import { useAppStore } from '../../lib/appStore';
 import { iotSimulator } from '../../lib/iotSimulator';
 import { isModelAvailable, classifyWithModel, loadModel } from '../../lib/tfClassifier';
 import { LiveScanner } from './LiveScanner';
+import { Icon } from '../../components/Icon';
 
 type Mode = 'camera' | 'upload' | 'live';
 type Status = 'idle' | 'classifying' | 'done';
@@ -156,8 +157,8 @@ export function ScanTab() {
 
     console.warn('[GreenNode] [Camera] No se pudo acceder a la cámara:', lastErr);
     const name = (lastErr as Error)?.name;
-    let msg = 'No se pudo acceder a la cámara. Revisa los permisos o usa "Adjuntar imagen".';
-    if (name === 'NotAllowedError') msg = 'Permiso de cámara denegado. Actívalo en el navegador o usa "Adjuntar imagen".';
+    let msg = 'No se pudo acceder a la cámara. Revisa los permisos o usa la Galería.';
+    if (name === 'NotAllowedError') msg = 'Permiso de cámara denegado. Actívalo en el navegador o usa la Galería.';
     else if (name === 'NotFoundError') msg = 'No se encontró ninguna cámara en el dispositivo.';
     else if (name === 'NotReadableError') msg = 'La cámara está en uso por otra app. Ciérrala e intenta de nuevo.';
     setCameraError(msg);
@@ -324,7 +325,7 @@ export function ScanTab() {
   return (
     <div className="screen">
       <header className="screen-header">
-        <h2>📷 Escanear residuo</h2>
+        <h2>Escanear residuo</h2>
         <p className="screen-subtitle">
           Escanea con la cámara o adjunta una imagen · IA (MobileNetV2)
           {realModel === true && <span className="model-tag real"> · modelo real</span>}
@@ -339,19 +340,19 @@ export function ScanTab() {
             className={`mode-btn ${mode === 'camera' ? 'active' : ''}`}
             onClick={() => switchMode('camera')}
           >
-            📸 Escáner
+            <Icon name="camera" size={16} /> Foto
           </button>
           <button
             className={`mode-btn ${mode === 'live' ? 'active' : ''}`}
             onClick={() => switchMode('live')}
           >
-            ⚡ En vivo
+            <Icon name="bolt" size={16} /> En vivo
           </button>
           <button
             className={`mode-btn ${mode === 'upload' ? 'active' : ''}`}
             onClick={() => switchMode('upload')}
           >
-            🖼️ Adjuntar
+            <Icon name="image" size={16} /> Galería
           </button>
         </div>
       )}
@@ -402,14 +403,14 @@ export function ScanTab() {
                 onClick={flipCamera}
                 title="Cambiar cámara"
               >
-                🔄
+                <Icon name="flip" size={20} />
               </button>
             )}
             {!cameraOn && (
               <div className="camera-off">
                 {cameraError ? (
                   <>
-                    <span className="camera-icon">🚫</span>
+                    <span className="camera-icon"><Icon name="camera" size={40} /></span>
                     <p className="camera-error">{cameraError}</p>
                     <button className="btn btn-outline retry-btn" onClick={() => startCamera()}>
                       Reintentar
@@ -435,7 +436,7 @@ export function ScanTab() {
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
           >
-            <span className="camera-icon">🖼️</span>
+            <span className="camera-icon"><Icon name="image" size={40} /></span>
             <p className="dropzone-title">Arrastra una imagen aquí</p>
             <p className="dropzone-hint">o haz clic para seleccionar un archivo</p>
           </div>
@@ -454,7 +455,7 @@ export function ScanTab() {
               onClick={handleClassify}
               disabled={status === 'classifying'}
             >
-              {status === 'classifying' ? 'Clasificando...' : '🔍 Clasificar'}
+              {status === 'classifying' ? 'Clasificando...' : 'Clasificar'}
             </button>
             {status === 'idle' && (
               <button className="btn btn-secondary btn-large change-btn" onClick={reset}>
@@ -464,18 +465,19 @@ export function ScanTab() {
           </>
         ) : mode === 'camera' ? (
           <button
-            className="btn btn-primary btn-large"
+            className="shutter-btn"
             onClick={capturePhoto}
             disabled={!cameraOn}
+            aria-label="Capturar foto"
           >
-            📸 Capturar
+            <span className="shutter-ring" />
           </button>
         ) : (
           <button
             className="btn btn-primary btn-large"
             onClick={() => fileInputRef.current?.click()}
           >
-            📎 Adjuntar imagen
+            Elegir imagen
           </button>
         )}
       </div>

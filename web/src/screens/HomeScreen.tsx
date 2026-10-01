@@ -1,9 +1,12 @@
 import React from 'react';
+import { useAppStore } from '../lib/appStore';
+import { Icon } from '../components/Icon';
 
 interface Props {
   userName: string;
   userLevel: number;
   userPoints: number;
+  onNavigate: (tab: string) => void;
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -19,122 +22,91 @@ function getLevelLabel(level: number): string {
   return LEVEL_LABELS[level] ?? LEVEL_LABELS[1];
 }
 
-export function HomeScreen({ userName, userLevel, userPoints }: Props) {
+const ACTIONS = [
+  { key: 'scan', icon: 'scan', label: 'Escanear', hint: 'Clasifica un residuo', tone: 'green' },
+  { key: 'map', icon: 'map', label: 'Mapa', hint: 'Contenedores cercanos', tone: 'blue' },
+  { key: 'history', icon: 'history', label: 'Historial', hint: 'Tus clasificaciones', tone: 'orange' },
+  { key: 'education', icon: 'book', label: 'Aprender', hint: 'Micro-lecciones', tone: 'purple' },
+];
+
+export function HomeScreen({ userName, userLevel, userPoints, onNavigate }: Props) {
+  const { history } = useAppStore();
   const levelLabel = getLevelLabel(userLevel);
   const nextLevelPoints = userLevel * 100;
   const progress = Math.min(userPoints / nextLevelPoints, 1) * 100;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+  const stats = [
+    { icon: 'recycle', value: history.length, label: 'Clasificaciones' },
+    { icon: 'box', value: 0, label: 'Depósitos' },
+    { icon: 'flame', value: 0, label: 'Racha días' },
+  ];
 
   return (
-    <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
-      {/* Greeting */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <div className="screen wide home">
+      <header className="home-greeting">
         <div>
-          <p style={{ color: '#757575', margin: 0, fontSize: 14 }}>Bienvenido</p>
-          <h2 style={{ margin: '4px 0 0', color: '#212121' }}>{userName.split(' ')[0]}</h2>
+          <p className="home-hello">{greeting}</p>
+          <h2 className="home-name">{userName.split(' ')[0]}</h2>
         </div>
-        <span style={{
-          background: '#E8F5E9',
-          color: '#1B5E20',
-          padding: '4px 12px',
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 600,
-          border: '1px solid #C8E6C9',
-        }}>
+        <span className="level-chip">
           Nv. {userLevel} · {levelLabel}
         </span>
-      </div>
+      </header>
 
-      {/* Points Card */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        padding: 24,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginBottom: 24,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <section className="hero-card">
+        <div className="hero-top">
           <div>
-            <p style={{ color: '#757575', margin: 0, fontSize: 12 }}>Tus puntos</p>
-            <p style={{ fontSize: 40, fontWeight: 700, color: '#2E7D32', margin: '4px 0 0' }}>{userPoints}</p>
+            <p className="hero-label">Tus puntos</p>
+            <p className="hero-points">{userPoints}</p>
           </div>
-          <div style={{
-            width: 56, height: 56, borderRadius: 28,
-            background: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28,
-          }}>
-            🏆
-          </div>
+          <div className="hero-trophy"><Icon name="trophy" size={28} /></div>
         </div>
-        <div style={{ marginTop: 16 }}>
-          <div style={{ height: 8, background: '#EEEEEE', borderRadius: 999, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: '#2E7D32', borderRadius: 999 }} />
-          </div>
-          <p style={{ color: '#757575', fontSize: 12, margin: '8px 0 0' }}>
-            {userPoints} / {nextLevelPoints} puntos para nivel {userLevel + 1}
+        <div className="hero-track">
+          <div className="hero-fill" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="hero-next">
+          {userPoints} / {nextLevelPoints} puntos para el nivel {userLevel + 1}
+        </p>
+      </section>
+
+      <section className="home-actions">
+      <h3 className="section-title">Acciones rápidas</h3>
+      <div className="action-grid">
+        {ACTIONS.map((a) => (
+          <button key={a.key} className={`action-card tone-${a.tone}`} onClick={() => onNavigate(a.key)}>
+            <span className="action-icon"><Icon name={a.icon} size={22} /></span>
+            <span className="action-label">{a.label}</span>
+            <span className="action-hint">{a.hint}</span>
+          </button>
+        ))}
+      </div>
+      </section>
+
+      <section className="tip-card">
+        <span className="tip-icon"><Icon name="bulb" size={22} /></span>
+        <div>
+          <h3 className="tip-title">Dato del día</h3>
+          <p className="tip-text">
+            ¿Sabías que reciclar una lata de aluminio ahorra suficiente energía para encender un
+            televisor por 3 horas? ¡Cada depósito cuenta!
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* Quick Actions */}
-      <h3 style={{ marginBottom: 12 }}>Acciones rápidas</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-        {[
-          { icon: '📷', label: 'Escanear', bg: '#E8F5E9' },
-          { icon: '🗺️', label: 'Mapa', bg: '#E3F2FD' },
-          { icon: '📋', label: 'Historial', bg: '#FFF3E0' },
-          { icon: '📚', label: 'Aprender', bg: '#E8F5E9' },
-        ].map((action) => (
-          <div key={action.label} style={{
-            background: action.bg,
-            borderRadius: 12,
-            padding: '20px 0',
-            textAlign: 'center',
-            cursor: 'pointer',
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>{action.icon}</div>
-            <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{action.label}</p>
+      <section className="home-summary">
+      <h3 className="section-title">Tu resumen</h3>
+      <div className="summary-grid">
+        {stats.map((s) => (
+          <div key={s.label} className="summary-card">
+            <span className="summary-icon"><Icon name={s.icon} size={20} /></span>
+            <span className="summary-value">{s.value}</span>
+            <span className="summary-label">{s.label}</span>
           </div>
         ))}
       </div>
-
-      {/* Eco Tip */}
-      <div style={{
-        border: '1px solid #E0E0E0',
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 24,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 22 }}>💡</span>
-          <h3 style={{ margin: 0 }}>Dato del día</h3>
-        </div>
-        <p style={{ color: '#424242', margin: 0, lineHeight: 1.6 }}>
-          ¿Sabías que reciclar una lata de aluminio ahorra suficiente energía
-          para encender un televisor por 3 horas? ¡Cada depósito cuenta!
-        </p>
-      </div>
-
-      {/* Summary */}
-      <h3 style={{ marginBottom: 12 }}>Tu resumen</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-        {[
-          { icon: '♻️', value: 0, label: 'Clasificaciones' },
-          { icon: '📦', value: 0, label: 'Depósitos' },
-          { icon: '🔥', value: 0, label: 'Racha días' },
-        ].map((stat) => (
-          <div key={stat.label} style={{
-            border: '1px solid #E0E0E0',
-            borderRadius: 12,
-            padding: '20px 0',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>{stat.icon}</div>
-            <p style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px' }}>{stat.value}</p>
-            <p style={{ color: '#757575', fontSize: 12, margin: 0 }}>{stat.label}</p>
-          </div>
-        ))}
-      </div>
+      </section>
     </div>
   );
 }

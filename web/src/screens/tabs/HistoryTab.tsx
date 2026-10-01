@@ -25,9 +25,9 @@ export function HistoryTab() {
   const accuracy = validated.length > 0 ? (correct / validated.length) * 100 : 0;
 
   return (
-    <div className="screen">
+    <div className="screen wide">
       <header className="screen-header">
-        <h2>📋 Historial</h2>
+        <h2>Historial</h2>
         <p className="screen-subtitle">Tus clasificaciones registradas</p>
       </header>
 

@@ -1,4 +1,5 @@
 import React, { useState, FormEvent } from 'react';
+import { Icon } from '../components/Icon';
 
 interface Props {
   onLogin: (user: { id: string; name: string; email: string; points: number; level: number }, token: string) => void;
@@ -58,35 +59,46 @@ export function LoginScreen({ onLogin }: Props) {
 
   return (
     <div className="login-page">
-      <div className="login-container">
+      <div className="login-hero">
+        <span className="hero-blob blob-a" />
+        <span className="hero-blob blob-b" />
         <div className="logo-section">
-          <div className="logo-circle">♻️</div>
+          <div className="logo-circle">
+            <Icon name="leaf" size={38} stroke={1.8} />
+          </div>
           <h1 className="logo-title">GreenNode</h1>
-          <p className="logo-subtitle">Gestión inteligente de residuos</p>
+          <p className="logo-subtitle">Clasifica, recicla y cuida el planeta con IA</p>
         </div>
+      </div>
 
-        <div className="form-card">
-          <h2 className="form-title">Iniciar Sesión</h2>
+      <div className="login-sheet">
+        <h2 className="form-title">Bienvenido de nuevo</h2>
+        <p className="form-subtitle">Inicia sesión para continuar</p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label className="input-label">Correo electrónico</label>
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="input-group">
+            <label className="input-label">Correo electrónico</label>
+            <div className={`input-wrap ${errors.email ? 'error' : ''}`}>
+              <Icon name="mail" size={18} />
               <input
                 type="email"
-                className={`input-field ${errors.email ? 'error' : ''}`}
+                className="input-field"
                 value={email}
                 onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
                 placeholder="tu@correo.com"
                 autoComplete="email"
               />
-              {errors.email && <p className="error-text">{errors.email}</p>}
             </div>
+            {errors.email && <p className="error-text">{errors.email}</p>}
+          </div>
 
-            <div className="input-group password-wrapper">
-              <label className="input-label">Contraseña</label>
+          <div className="input-group">
+            <label className="input-label">Contraseña</label>
+            <div className={`input-wrap ${errors.password ? 'error' : ''}`}>
+              <Icon name="lock" size={18} />
               <input
                 type={showPassword ? 'text' : 'password'}
-                className={`input-field ${errors.password ? 'error' : ''}`}
+                className="input-field"
                 value={password}
                 onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
                 placeholder="••••••••"
@@ -96,54 +108,38 @@ export function LoginScreen({ onLogin }: Props) {
                 type="button"
                 className="show-password"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPassword ? 'Ocultar' : 'Mostrar'}
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} />
               </button>
-              {errors.password && <p className="error-text">{errors.password}</p>}
             </div>
-
-            {errors.general && (
-              <div style={{
-                background: '#FEF2F2', border: '1px solid #FECACA',
-                borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 14, color: '#DC2626',
-              }}>
-                {errors.general}
-              </div>
-            )}
-
-            <button type="button" className="forgot-link">
-              ¿Olvidaste tu contraseña?
-            </button>
-
-            <button
-              type="submit"
-              className="btn btn-primary btn-large"
-              disabled={loading}
-            >
-              {loading ? <div className="spinner" /> : 'Iniciar Sesión'}
-            </button>
-
-            <div className="divider">
-              <div className="divider-line" />
-              <span className="divider-text">o</span>
-              <div className="divider-line" />
-            </div>
-
-            <button type="button" className="btn btn-outline btn-large">
-              Continuar con Google
-            </button>
-
-            <div style={{ height: 12 }} />
-
-            <button type="button" className="btn btn-secondary btn-large">
-              Continuar con Apple
-            </button>
-          </form>
-
-          <div className="footer">
-            ¿No tienes cuenta?{' '}
-            <a onClick={() => {}}>Regístrate aquí</a>
+            {errors.password && <p className="error-text">{errors.password}</p>}
           </div>
+
+          {errors.general && <div className="alert-box">{errors.general}</div>}
+
+          <button type="button" className="forgot-link">
+            ¿Olvidaste tu contraseña?
+          </button>
+
+          <button type="submit" className="btn btn-primary btn-large" disabled={loading}>
+            {loading ? <div className="spinner" /> : 'Iniciar sesión'}
+          </button>
+
+          <div className="divider">
+            <div className="divider-line" />
+            <span className="divider-text">o continúa con</span>
+            <div className="divider-line" />
+          </div>
+
+          <div className="social-row">
+            <button type="button" className="btn btn-outline">Google</button>
+            <button type="button" className="btn btn-outline">Apple</button>
+          </div>
+        </form>
+
+        <div className="footer">
+          ¿No tienes cuenta? <a onClick={() => {}}>Regístrate</a>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { MapTab } from './tabs/MapTab';
 import { HistoryTab } from './tabs/HistoryTab';
 import { EducationTab } from './tabs/EducationTab';
 import { ProfileTab } from './tabs/ProfileTab';
+import { Icon } from '../components/Icon';
 
 interface User {
   id: string;
@@ -21,12 +22,12 @@ interface Props {
 }
 
 const TABS = [
-  { key: 'home', icon: '🏠', label: 'Inicio' },
-  { key: 'scan', icon: '📷', label: 'Escanear' },
-  { key: 'map', icon: '🗺️', label: 'Mapa' },
-  { key: 'history', icon: '📋', label: 'Historial' },
-  { key: 'education', icon: '📚', label: 'Aprende' },
-  { key: 'profile', icon: '👤', label: 'Perfil' },
+  { key: 'home', icon: 'home', label: 'Inicio' },
+  { key: 'scan', icon: 'scan', label: 'Escanear' },
+  { key: 'map', icon: 'map', label: 'Mapa' },
+  { key: 'history', icon: 'history', label: 'Historial' },
+  { key: 'education', icon: 'book', label: 'Aprende' },
+  { key: 'profile', icon: 'user', label: 'Perfil' },
 ];
 
 export function MainTabs({ user, onLogout }: Props) {
@@ -35,28 +36,33 @@ export function MainTabs({ user, onLogout }: Props) {
   return (
     <AppStoreProvider>
       <div className="tabs-page">
-        <div className="tabs-content">
+        <div className="tabs-content" key={activeTab}>
           {activeTab === 'home' && (
-            <HomeScreen userName={user.name} userLevel={user.level} userPoints={user.points} />
+            <HomeScreen
+              userName={user.name}
+              userLevel={user.level}
+              userPoints={user.points}
+              onNavigate={setActiveTab}
+            />
           )}
           {activeTab === 'scan' && <ScanTab />}
           {activeTab === 'map' && <MapTab />}
           {activeTab === 'history' && <HistoryTab />}
           {activeTab === 'education' && <EducationTab />}
-          {activeTab === 'profile' && <ProfileTab onLogout={onLogout} />}
+          {activeTab === 'profile' && <ProfileTab user={user} onLogout={onLogout} />}
         </div>
-        <div className="tab-bar">
+        <nav className="tab-bar">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               className={`tab-item ${activeTab === tab.key ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.key)}
             >
-              {tab.icon}
-              <span>{tab.label}</span>
+              <Icon name={tab.icon} size={22} />
+              <span className="tab-label">{tab.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
       </div>
     </AppStoreProvider>
   );

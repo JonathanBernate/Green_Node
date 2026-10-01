@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../lib/appStore';
+import { Icon } from '../../components/Icon';
 import { MqttConnectionState } from '../../lib/iotSimulator';
 
 const CONN_LABEL: Record<MqttConnectionState, string> = {
@@ -16,24 +17,31 @@ const CONN_COLOR: Record<MqttConnectionState, string> = {
   [MqttConnectionState.DISCONNECTED]: '#F44336',
 };
 
-export function ProfileTab({ onLogout }: { onLogout: () => void }) {
+interface ProfileUser {
+  name: string;
+  email: string;
+  points: number;
+  level: number;
+}
+
+export function ProfileTab({ user, onLogout }: { user: ProfileUser; onLogout: () => void }) {
   const { connectionState, publishCount, lastPublishedAt, alerts, history } = useAppStore();
 
   return (
     <div className="screen">
       <header className="screen-header">
-        <h2>👤 Perfil</h2>
+        <h2>Perfil</h2>
         <p className="screen-subtitle">Cuenta y estado del sistema</p>
       </header>
 
       <div className="profile-card">
-        <div className="avatar">👤</div>
+        <div className="avatar">{user.name.trim().charAt(0).toUpperCase() || '👤'}</div>
         <div>
-          <p className="profile-name">Usuario Demo</p>
-          <p className="profile-email">demo@greennode.co</p>
+          <p className="profile-name">{user.name}</p>
+          <p className="profile-email">{user.email}</p>
           <div className="profile-badges">
-            <span className="badge-chip">🏅 Nivel 3</span>
-            <span className="badge-chip">⭐ {history.length * 10} pts</span>
+            <span className="badge-chip"><Icon name="medal" size={14} /> Nivel {user.level}</span>
+            <span className="badge-chip"><Icon name="star" size={14} /> {user.points} pts</span>
           </div>
         </div>
       </div>
@@ -80,7 +88,7 @@ export function ProfileTab({ onLogout }: { onLogout: () => void }) {
       )}
 
       <button className="btn btn-outline btn-large logout-btn" onClick={onLogout}>
-        Cerrar sesión
+        <Icon name="logout" size={18} /> Cerrar sesión
       </button>
 
       <p className="app-version">GreenNode v1.0.0 · demo web</p>

@@ -16,9 +16,9 @@ export function EducationTab() {
   };
 
   return (
-    <div className="screen">
+    <div className="screen wide">
       <header className="screen-header">
-        <h2>📚 Aprender</h2>
+        <h2>Aprender</h2>
         <p className="screen-subtitle">Micro-lecciones sobre gestión de residuos</p>
       </header>
 

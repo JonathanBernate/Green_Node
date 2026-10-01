@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../../components/Icon';
 import {
   GROUP_COLORS,
   GROUP_ICONS,
@@ -140,7 +141,7 @@ export function LiveScanner() {
           <div className="camera-off">
             {cameraError ? (
               <>
-                <span className="camera-icon">🚫</span>
+                <span className="camera-icon"><Icon name="camera" size={40} /></span>
                 <p className="camera-error">{cameraError}</p>
               </>
             ) : (

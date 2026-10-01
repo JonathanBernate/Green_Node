@@ -21,9 +21,9 @@ export function MapTab() {
   const [selected, setSelected] = useState<Container | null>(null);
 
   return (
-    <div className="screen">
+    <div className="screen wide">
       <header className="screen-header">
-        <h2>🗺️ Contenedores IoT</h2>
+        <h2>Contenedores</h2>
         <p className="screen-subtitle">
           {containers.length} nodos · niveles actualizados en tiempo real vía MQTT
         </p>
