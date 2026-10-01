@@ -23,13 +23,13 @@ import { AuthRepositoryImpl } from '@/data/repositories/AuthRepositoryImpl';
 import { ApiError } from '@/data/datasources/remote/api/apiClient';
 import { colors } from '@/shared/constants/colors';
 import { spacing } from '@/shared/constants/spacing';
-import { typography } from '@/shared/constants/typography';
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 const authRepository = new AuthRepositoryImpl();
 
 export function LoginScreen() {
   const navigation = useNavigation<NavProp>();
+<<<<<<< HEAD
   const login = useAuthStore((s) => s.login);
   const clearPersistedData = useAuthStore((s) => s.clearPersistedData);
   const [email, setEmail] = useState('');
@@ -37,6 +37,13 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+=======
+  const { loginWithCredentials, isLoading, error, clearError } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+>>>>>>> feature/fredy
 
   const validate = useCallback(() => {
     const newErrors: { email?: string; password?: string } = {};
@@ -56,6 +63,7 @@ export function LoginScreen() {
 
   const handleLogin = useCallback(async () => {
     if (!validate()) return;
+<<<<<<< HEAD
     setLoading(true);
     setErrors({});
     try {
@@ -75,6 +83,15 @@ export function LoginScreen() {
       setLoading(false);
     }
   }, [email, password, login, validate]);
+=======
+    clearError();
+    try {
+      await loginWithCredentials(email.trim(), password);
+    } catch {
+      // El error se maneja via el store
+    }
+  }, [email, password, loginWithCredentials, validate, clearError]);
+>>>>>>> feature/fredy
 
   return (
     <ScreenContainer safeAreaBottom={false}>
@@ -110,6 +127,16 @@ export function LoginScreen() {
               Iniciar Sesión
             </Heading>
             <Spacer size="xl" />
+
+            {/* Error global del store */}
+            {error && (
+              <>
+                <View style={styles.errorBanner}>
+                  <Body color={colors.semantic.error}>{error}</Body>
+                </View>
+                <Spacer size="md" />
+              </>
+            )}
 
             <TextInput
               label="Correo electrónico"
@@ -161,7 +188,7 @@ export function LoginScreen() {
               onPress={handleLogin}
               fullWidth
               size="large"
-              loading={loading}
+              loading={isLoading}
             >
               Iniciar Sesión
             </ButtonPrimary>
@@ -177,7 +204,26 @@ export function LoginScreen() {
 
             <Spacer size="xl" />
 
-            
+            {/* Social login placeholders */}
+            <ButtonPrimary
+              onPress={() => {}}
+              variant="outline"
+              fullWidth
+              size="large"
+            >
+              Continuar con Google
+            </ButtonPrimary>
+
+            <Spacer size="md" />
+
+            <ButtonPrimary
+              onPress={() => {}}
+              variant="secondary"
+              fullWidth
+              size="large"
+            >
+              Continuar con Apple
+            </ButtonPrimary>
           </View>
 
           <Spacer size="xl" />
@@ -196,6 +242,7 @@ export function LoginScreen() {
 
           <Spacer size="lg" />
 
+<<<<<<< HEAD
           {/* Debug: limpiar datos viejos */}
           <Pressable
             onLongPress={async () => {
@@ -210,6 +257,14 @@ export function LoginScreen() {
           </Pressable>
 
           <Spacer size="lg" />
+=======
+          {/* Demo hint */}
+          <View style={styles.demoHint}>
+            <Caption color={colors.neutral[400]} align="center">
+              Demo: demo@greennode.co / 123456
+            </Caption>
+          </View>
+>>>>>>> feature/fredy
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -252,6 +307,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
+  errorBanner: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.semantic.error,
+  },
   passwordContainer: {
     position: 'relative',
   },
@@ -289,7 +351,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+<<<<<<< HEAD
   debugClear: {
     padding: spacing.sm,
+=======
+  demoHint: {
+    paddingVertical: spacing.sm,
+>>>>>>> feature/fredy
   },
 });
