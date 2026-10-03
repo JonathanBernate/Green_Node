@@ -11,6 +11,24 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   other: 'Otro',
 };
 
+export const REPORT_TYPE_ICONS: Record<ReportType, string> = {
+  full: '🗑️',
+  damaged: '🔧',
+  litter: '🚯',
+  access: '🚧',
+  anomaly: '⚡',
+  other: '💬',
+};
+
+export const REPORT_TYPE_COLORS: Record<ReportType, string> = {
+  full: '#E5484D',
+  damaged: '#F5A524',
+  litter: '#8B5CF6',
+  access: '#1D6FD1',
+  anomaly: '#0E8A3E',
+  other: '#64748B',
+};
+
 export interface ReportInput {
   type: ReportType | '';
   description: string;
@@ -37,11 +55,19 @@ export function sanitizeText(s: string): string {
   return s.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-const KEY = 'greennode.reports';
+/** En simulación los reportes viven en el navegador, separados por usuario. */
+function storageKey(): string {
+  try {
+    const u = JSON.parse(localStorage.getItem('auth_user') ?? 'null') as { id?: string } | null;
+    return `greennode.reports.${u?.id ?? 'anon'}`;
+  } catch {
+    return 'greennode.reports.anon';
+  }
+}
 
 function readLocal(): Report[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]') as Report[];
+    return JSON.parse(localStorage.getItem(storageKey()) ?? '[]') as Report[];
   } catch {
     return [];
   }
@@ -65,7 +91,7 @@ export const reportService = {
     };
     if (config.useMockData) {
       const report: Report = { ...payload, id: `r_${Date.now()}`, source: 'SIMULATION' };
-      localStorage.setItem(KEY, JSON.stringify([report, ...readLocal()].slice(0, 100)));
+      localStorage.setItem(storageKey(), JSON.stringify([report, ...readLocal()].slice(0, 100)));
       return report;
     }
     return request<Report>('/api/reports', { method: 'POST', body: payload });

@@ -33,6 +33,23 @@ class User extends Authenticatable implements FilamentUser
         return $this->getAttribute('role') ?: self::ROLE_USER;
     }
 
+    /** Representación pública del usuario para la API. */
+    public function toApiArray(): array
+    {
+        $container = $this->roleName() === self::ROLE_CONTAINER ? $this->container : null;
+
+        return [
+            'id' => (string) $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'role' => $this->roleName(),
+            'avatar' => $this->getAttribute('avatar'),
+            'points' => $this->totalPoints(),
+            'level' => $this->level(),
+            'container' => $container ? ['id' => $container->identifier, 'name' => $container->name ?: $container->identifier] : null,
+        ];
+    }
+
     public function container()
     {
         return $this->hasOne(Container::class);

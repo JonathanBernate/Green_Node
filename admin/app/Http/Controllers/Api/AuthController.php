@@ -27,32 +27,42 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken(self::deviceLabel($request->userAgent()))->plainTextToken;
 
         return response()->json([
-            'user' => $this->payload($user),
+            'user' => $user->toApiArray(),
             'token' => $token,
         ]);
     }
 
-    public function user(Request $request): JsonResponse
+    /** "Safari · iOS" a partir del User-Agent; el nombre del token identifica la sesión en Ajustes. */
+    public static function deviceLabel(?string $ua): string
     {
-        return response()->json($this->payload($request->user()));
+        if (! $ua) {
+            return 'Dispositivo desconocido';
+        }
+        $os = match (true) {
+            (bool) preg_match('/iPhone|iPad/', $ua) => 'iOS',
+            str_contains($ua, 'Android') => 'Android',
+            str_contains($ua, 'Windows') => 'Windows',
+            str_contains($ua, 'Mac OS X') => 'macOS',
+            str_contains($ua, 'Linux') => 'Linux',
+            default => 'Dispositivo',
+        };
+        $browser = match (true) {
+            str_contains($ua, 'Edg/') => 'Edge',
+            str_contains($ua, 'Firefox/') => 'Firefox',
+            str_contains($ua, 'Chrome/') => 'Chrome',
+            str_contains($ua, 'Safari/') => 'Safari',
+            default => 'Navegador',
+        };
+
+        return "$browser · $os";
     }
 
-    private function payload(User $user): array
+    public function user(Request $request): JsonResponse
     {
-        $container = $user->roleName() === User::ROLE_CONTAINER ? $user->container : null;
-
-        return [
-            'id' => (string) $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->roleName(),
-            'points' => $user->totalPoints(),
-            'level' => $user->level(),
-            'container' => $container ? ['id' => $container->identifier, 'name' => $container->name ?: $container->identifier] : null,
-        ];
+        return response()->json($request->user()->toApiArray());
     }
 
     public function logout(Request $request): JsonResponse

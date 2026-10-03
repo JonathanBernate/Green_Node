@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ContainerClassificationController;
 use App\Http\Controllers\Api\ContainerConnectionController;
 use App\Http\Controllers\Api\ContainerLocationController;
 use App\Http\Controllers\Api\LessonController;
+use App\Http\Controllers\Api\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -13,6 +14,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::patch('/user', [ProfileController::class, 'update']);
+    Route::put('/user/avatar', [ProfileController::class, 'updateAvatar'])->middleware('throttle:20,1');
+    Route::delete('/user/avatar', [ProfileController::class, 'destroyAvatar']);
+    Route::get('/user/sessions', [ProfileController::class, 'sessions']);
+    Route::delete('/user/sessions', [ProfileController::class, 'revokeOtherSessions']);
+    Route::delete('/user/sessions/{id}', [ProfileController::class, 'revokeSession'])->whereNumber('id');
+    Route::put('/user/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:10,1');
 });
 
 Route::middleware('auth:sanctum')->prefix('lessons')->group(function () {

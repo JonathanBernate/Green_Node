@@ -3,10 +3,12 @@ import { useAuth } from '../../app/AuthProvider';
 import { DataSourceTag } from '../../components/common/DataSourceTag';
 import { Kpi } from '../../components/common/Kpi';
 import { Icon } from '../../components/Icon';
+import { ReportCard } from '../../components/reports/ReportCard';
 import { LearningCard } from '../../components/learn/LearningCard';
 import { Donut, LineChart } from '../../components/metrics/charts';
 import { config } from '../../config/env';
 import { useAlerts, useContainers, useNetworkSnapshot } from '../../hooks/useData';
+import { useReports } from '../../hooks/useReports';
 import { useAppStore } from '../../lib/appStore';
 import { WASTE_TYPE_COLORS, WASTE_TYPE_ICONS, WASTE_TYPE_LABELS, WasteType } from '../../lib/domain';
 import { deriveHealth, formatAgo, HEALTH_COLORS, HEALTH_LABELS } from '../../utils/status';
@@ -29,6 +31,7 @@ export function DashboardPage() {
   const { containers, source } = useContainers();
   const net = useNetworkSnapshot('sc-50');
   const alerts = useAlerts();
+  const reports = useReports().data ?? [];
 
   const level = user?.level ?? 1;
   const points = user?.points ?? 0;
@@ -134,6 +137,18 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section className="panel" aria-label="Reportes recientes">
+          <h3 className="section-title">Mis reportes {reports.length > 0 && <span className="count-pill">{reports.length}</span>}</h3>
+          {reports.length === 0 ? (
+            <p className="inference-meta">Aún no has reportado incidencias.</p>
+          ) : (
+            <ul className="rp-list">
+              {reports.slice(0, 3).map((r) => <ReportCard key={r.id} report={r} compact />)}
+            </ul>
+          )}
+          <Link to="/reports" className="panel-link">{reports.length === 0 ? 'Reportar una incidencia' : 'Ver todos los reportes'} →</Link>
         </section>
 
         <section className="panel">

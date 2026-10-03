@@ -4,6 +4,7 @@ import { useConnectionStatus } from '../../hooks/useData';
 import { config } from '../../config/env';
 import { ConnectionBadge } from '../common/ConnectionBadge';
 import { DataSourceTag } from '../common/DataSourceTag';
+import { Avatar } from '../common/Avatar';
 import { Icon } from '../Icon';
 import { NAV_ITEMS } from './nav';
 
@@ -54,7 +55,7 @@ export function AppLayout() {
 
         <div className="nav-user">
           <NavLink to="/settings" className="nav-user-link" title="Ajustes de cuenta">
-            <span className="avatar sm">{(user?.name ?? '?').trim().charAt(0).toUpperCase()}</span>
+            <Avatar user={user} className="sm" />
             <span className="nav-user-text">
               <b>{user?.name}</b>
               <small>Nivel {user?.level} · {user?.points} pts</small>

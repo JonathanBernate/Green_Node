@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/utils';
@@ -51,12 +51,25 @@ describe('ReportsPage', () => {
   it('registra un reporte válido y lo lista', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    await user.selectOptions(screen.getByLabelText('Tipo de incidencia'), 'full');
+    await user.click(screen.getByRole('radio', { name: /Contenedor lleno/ }));
     await user.selectOptions(screen.getByLabelText('Contenedor'), 'c-003');
     await user.type(screen.getByLabelText(/Descripción/), 'Está desbordado desde ayer');
     await user.click(screen.getByRole('button', { name: 'Enviar reporte' }));
-    expect(await screen.findByText('Reporte registrado correctamente.')).toBeInTheDocument();
+    expect(await screen.findByText('¡Reporte enviado!')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Está desbordado desde ayer')).toBeInTheDocument());
+  });
+});
+
+describe('Reportes en el Inicio', () => {
+  it('un reporte enviado aparece en el panel del dashboard', async () => {
+    const { reportService } = await import('../services/api');
+    renderWithProviders(<DashboardPage />);
+    expect(await screen.findByText('Aún no has reportado incidencias.')).toBeInTheDocument();
+    cleanup();
+    await reportService.create({ type: 'damaged', container_id: 'c-002', description: 'Tapa rota y atascada' });
+    renderWithProviders(<DashboardPage />);
+    expect(await screen.findByText('Tapa rota y atascada')).toBeInTheDocument();
+    expect(screen.getByText('Contenedor dañado')).toBeInTheDocument();
   });
 });
 

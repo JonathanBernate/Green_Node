@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../app/AuthProvider';
+import { Avatar } from '../components/common/Avatar';
 import { Icon } from '../components/Icon';
 import { NAV_GROUPS, NAV_ITEMS } from '../components/layout/nav';
 
@@ -16,7 +17,7 @@ export function MorePage() {
       </header>
 
       <Link to="/settings" className="more-profile">
-        <span className="avatar">{(user?.name ?? '?').trim().charAt(0).toUpperCase()}</span>
+        <Avatar user={user} />
         <span className="more-profile-text">
           <b>{user?.name}</b>
           <small>Nivel {user?.level} · {user?.points} pts</small>

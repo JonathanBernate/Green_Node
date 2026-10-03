@@ -9,6 +9,8 @@ Con `VITE_USE_MOCK_DATA=true` (por defecto) el frontend no llama a los endpoints
 |---|---|---|---|
 | ✅ | `POST /api/login` `{email,password}` | `authService.login` | `{user:{id,name,email,role,points,level,container}, token}` (`role`: `admin`\|`user`\|`contenedor`) |
 | ✅ | `GET /api/user` · `POST /api/logout` | `authService` | — |
+| ✅ | `PATCH /api/user` `{name}` · `PUT /api/user/avatar` `{avatar: data URI jpeg/png/webp ≤256 KB, ≤1024 px}` · `DELETE /api/user/avatar` · `PUT /api/user/password` `{current_password,password,password_confirmation}` | `profileService` | `User` actualizado (con `avatar`) / `{message}` |
+| ✅ | `GET /api/user/sessions` · `DELETE /api/user/sessions/{id}` · `DELETE /api/user/sessions` (todas menos la actual) | `sessionService` | `{id,device,created_at,last_used_at,current}[]` |
 | ✅ | `GET /api/lessons` | `lessonService.list` | `Lesson[]` (solo publicadas, con `completed` y `score` del usuario) |
 | ✅ | `GET /api/lessons/{id}` | `lessonService.get` | `Lesson` + `content` (Markdown) + `questions[]` (sin respuesta correcta) |
 | ✅ | `POST /api/lessons/{id}/submit` `{answers:{<questionId>:<índice>}}` | `lessonService.submit` | `{score,passed,passScore,pointsEarned,results[],totalPoints,level}` |

@@ -10,6 +10,8 @@ export interface AuthUser {
   level: number;
   /** Ausente en sesiones guardadas antes de existir roles: se trata como 'user'. */
   role?: UserRole;
+  /** Foto de perfil como data URI; null/ausente = iniciales. */
+  avatar?: string | null;
   /** Solo para el rol 'contenedor': el contenedor que opera este usuario. */
   container?: { id: string; name: string } | null;
 }
@@ -27,6 +29,45 @@ export const authService = {
     } catch {
       /* la sesión local se cierra de todos modos */
     }
+  },
+};
+
+/** Perfil del usuario autenticado (siempre contra el backend: el login también lo es). */
+export const profileService = {
+  updateName(name: string): Promise<AuthUser> {
+    return request('/api/user', { method: 'PATCH', body: { name } });
+  },
+  uploadAvatar(dataUri: string): Promise<AuthUser> {
+    return request('/api/user/avatar', { method: 'PUT', body: { avatar: dataUri }, timeoutMs: 20000 });
+  },
+  removeAvatar(): Promise<AuthUser> {
+    return request('/api/user/avatar', { method: 'DELETE' });
+  },
+  async changePassword(input: { current: string; next: string; confirm: string }): Promise<void> {
+    await request('/api/user/password', {
+      method: 'PUT',
+      body: { current_password: input.current, password: input.next, password_confirmation: input.confirm },
+    });
+  },
+};
+
+export interface AuthSession {
+  id: number;
+  device: string;
+  created_at: string | null;
+  last_used_at: string | null;
+  current: boolean;
+}
+
+export const sessionService = {
+  list(): Promise<AuthSession[]> {
+    return request('/api/user/sessions');
+  },
+  async revoke(id: number): Promise<void> {
+    await request(`/api/user/sessions/${id}`, { method: 'DELETE' });
+  },
+  async revokeOthers(): Promise<void> {
+    await request('/api/user/sessions', { method: 'DELETE' });
   },
 };
 
