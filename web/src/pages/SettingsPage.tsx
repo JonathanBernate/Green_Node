@@ -34,7 +34,9 @@ export function SettingsPage() {
   };
 
   const clearLocal = () => {
-    ['greennode.history', 'greennode.events', 'greennode.reports'].forEach((k) => localStorage.removeItem(k));
+    ['greennode.events', 'greennode.reports'].forEach((k) => localStorage.removeItem(k));
+    // Caché local del historial (el historial guardado en el servidor no se borra)
+    Object.keys(localStorage).filter((k) => k.startsWith('greennode.history')).forEach((k) => localStorage.removeItem(k));
     appMetrics.clear();
     window.location.reload();
   };

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClassificationController;
 use App\Http\Controllers\Api\ContainerClassificationController;
 use App\Http\Controllers\Api\ContainerLocationController;
 use App\Http\Controllers\Api\LessonController;
@@ -31,4 +32,13 @@ Route::middleware(['auth:sanctum', 'role:contenedor'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:admin,user'])->prefix('containers')->group(function () {
     Route::get('/locations', [ContainerLocationController::class, 'index']);
     Route::get('/{container:identifier}/location', [ContainerLocationController::class, 'show']);
+});
+
+// Historial personal de clasificaciones (usuarios que escanean).
+Route::middleware(['auth:sanctum', 'role:admin,user'])->prefix('classifications')->group(function () {
+    Route::get('/', [ClassificationController::class, 'index']);
+    Route::post('/', [ClassificationController::class, 'store'])->middleware('throttle:60,1');
+    Route::delete('/', [ClassificationController::class, 'clear']);
+    Route::delete('/{id}', [ClassificationController::class, 'destroy'])->whereNumber('id');
+    Route::patch('/{id}/feedback', [ClassificationController::class, 'feedback'])->whereNumber('id');
 });

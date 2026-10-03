@@ -40,13 +40,46 @@ export const WASTE_TYPE_ICONS: Record<WasteType, string> = {
   [WasteType.SPECIAL]: '⚠️',
 };
 
+// --- Canecas (Resolución 2184 de 2019, Colombia): solo existen tres ---
+export type Bin = 'blanca' | 'verde' | 'negra';
+
+export const BIN_LABELS: Record<Bin, string> = {
+  blanca: 'Caneca blanca',
+  verde: 'Caneca verde',
+  negra: 'Caneca negra',
+};
+
+export const BIN_DESCRIPTIONS: Record<Bin, string> = {
+  blanca: 'Aprovechables: plástico, papel, cartón, vidrio y metal',
+  verde: 'Orgánicos aprovechables',
+  negra: 'No aprovechables y residuos especiales',
+};
+
+export const BIN_COLORS: Record<Bin, string> = {
+  blanca: '#CBD5E1',
+  verde: '#16A34A',
+  negra: '#1F2937',
+};
+
+export const BIN_ORDER: Bin[] = ['blanca', 'verde', 'negra'];
+
+/** Caneca donde se deposita cada tipo de residuo. */
+export const WASTE_TYPE_BIN: Record<WasteType, Bin> = {
+  [WasteType.ORGANIC]: 'verde',
+  [WasteType.PLASTIC]: 'blanca',
+  [WasteType.PAPER]: 'blanca',
+  [WasteType.GLASS]: 'blanca',
+  [WasteType.METAL]: 'blanca',
+  [WasteType.SPECIAL]: 'negra',
+};
+
 export const WASTE_DISPOSAL_TIP: Record<WasteType, string> = {
-  [WasteType.ORGANIC]: 'Deposítalo en el contenedor marrón para compostaje.',
-  [WasteType.PLASTIC]: 'Enjuaga y aplasta la botella. Contenedor amarillo.',
-  [WasteType.PAPER]: 'Mantenlo seco y sin grasa. Contenedor azul.',
-  [WasteType.GLASS]: 'Sin tapas ni corchos. Contenedor verde.',
-  [WasteType.METAL]: 'Latas limpias y compactadas. Contenedor amarillo.',
-  [WasteType.SPECIAL]: 'Llévalo a un punto limpio. No lo mezcles con la basura común.',
+  [WasteType.ORGANIC]: 'Caneca verde: orgánicos aprovechables, para compostaje.',
+  [WasteType.PLASTIC]: 'Caneca blanca: enjuaga y aplasta la botella antes de depositarla.',
+  [WasteType.PAPER]: 'Caneca blanca: mantenlo seco y sin grasa.',
+  [WasteType.GLASS]: 'Caneca blanca: sin tapas ni corchos.',
+  [WasteType.METAL]: 'Caneca blanca: latas limpias y compactadas.',
+  [WasteType.SPECIAL]: 'Caneca negra, o mejor llévalo a un punto de posconsumo: no lo mezcles con aprovechables.',
 };
 
 const INDEX_TO_WASTE_TYPE: WasteType[] = [
@@ -81,6 +114,8 @@ export interface ClassificationResult {
   simulated?: boolean;
   /** Nombre del modelo que produjo la predicción, si se conoce. */
   model?: string;
+  /** Id en el servidor (historial persistido en Laravel). Ausente en resultados simulados. */
+  serverId?: number;
 }
 
 /**

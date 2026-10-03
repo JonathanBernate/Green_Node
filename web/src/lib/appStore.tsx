@@ -5,6 +5,8 @@
  */
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useAuth } from '../app/AuthProvider';
+import { historyService, isContainerUser } from '../services/api';
 import {
   Container,
   ContainerStatus,
@@ -25,6 +27,10 @@ interface AppState {
     autoConfirmed?: boolean,
     correctedType?: WasteType | null,
   ) => void;
+  /** Borra una clasificación (servidor y local). Devuelve false si el servidor no pudo borrarla. */
+  removeClassification: (id: string) => Promise<boolean>;
+  /** Borra todo el historial del usuario (servidor y local). Devuelve false si falló. */
+  clearHistory: () => Promise<boolean>;
   connectionState: MqttConnectionState;
   publishCount: number;
   lastPublishedAt: string | null;
@@ -33,11 +39,12 @@ interface AppState {
 
 const AppContext = createContext<AppState | null>(null);
 
-const HISTORY_KEY = 'greennode.history';
+/** Caché local del historial, separada por usuario (la fuente de verdad es el servidor). */
+const historyKey = (userId: string | undefined) => `greennode.history.${userId ?? 'anon'}`;
 
-function loadHistory(): ClassificationResult[] {
+function loadHistory(userId: string | undefined): ClassificationResult[] {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as ClassificationResult[];
+    return JSON.parse(localStorage.getItem(historyKey(userId)) ?? '[]') as ClassificationResult[];
   } catch {
     return [];
   }
@@ -45,7 +52,14 @@ function loadHistory(): ClassificationResult[] {
 
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [containers, setContainers] = useState<Container[]>(() => getInitialContainers());
-  const [history, setHistory] = useState<ClassificationResult[]>(() => loadHistory());
+  const { user } = useAuth();
+  const userId = user?.id;
+  // El rol 'contenedor' guarda sus clasificaciones asociadas al contenedor, no en el historial personal.
+  const canSync = !!user && !isContainerUser(user);
+  const [history, setHistory] = useState<ClassificationResult[]>(() => loadHistory(userId));
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  const pendingSaves = useRef(new Map<string, Promise<number | null>>());
   const [connectionState, setConnectionState] = useState<MqttConnectionState>(
     MqttConnectionState.DISCONNECTED,
   );
@@ -86,17 +100,81 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Persistencia del historial (últimos 200)
+  // Persistencia local del historial (últimos 200) por usuario
   useEffect(() => {
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
+      localStorage.setItem(historyKey(userId), JSON.stringify(history.slice(0, 200)));
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [history]);
+  }, [history, userId]);
+
+  // Al entrar: sube lo que quedó pendiente (p. ej. guardado sin conexión) y trae el historial del servidor
+  useEffect(() => {
+    if (!canSync) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        for (const r of historyRef.current.filter((x) => !x.serverId && !x.simulated)) {
+          try {
+            r.serverId = await historyService.save(r);
+          } catch {
+            /* se reintenta en la próxima carga */
+          }
+        }
+        const remote = await historyService.list();
+        if (cancelled) return;
+        // Se conservan solo las que no viven en el servidor (simuladas o aún sin subir)
+        const localOnly = historyRef.current.filter((r) => r.simulated || !r.serverId);
+        setHistory([...localOnly, ...remote].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)));
+      } catch {
+        /* sin conexión: se muestra la caché local */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [canSync, userId]);
 
   const addClassification = (r: ClassificationResult) => {
     setHistory((prev) => [r, ...prev]);
+    if (!canSync || r.simulated) return; // los resultados aleatorios de demostración no se guardan en el servidor
+    pendingSaves.current.set(
+      r.id,
+      historyService
+        .save(r)
+        .then((serverId) => {
+          setHistory((prev) => prev.map((x) => (x.id === r.id ? { ...x, serverId } : x)));
+          return serverId;
+        })
+        .catch(() => null),
+    );
+  };
+
+  // Primero el servidor: si falla no se borra en local, o reaparecería en la próxima sincronización.
+  const removeClassification = async (id: string): Promise<boolean> => {
+    const serverId = (await pendingSaves.current.get(id)) ?? historyRef.current.find((r) => r.id === id)?.serverId;
+    if (canSync && serverId) {
+      try {
+        await historyService.remove(serverId);
+      } catch {
+        return false;
+      }
+    }
+    setHistory((prev) => prev.filter((r) => r.id !== id));
+    return true;
+  };
+
+  const clearHistory = async (): Promise<boolean> => {
+    if (canSync) {
+      try {
+        await Promise.all(pendingSaves.current.values());
+        await historyService.clear();
+      } catch {
+        return false;
+      }
+    }
+    pendingSaves.current.clear();
+    setHistory([]);
+    return true;
   };
 
   const setClassificationFeedback = (
@@ -110,6 +188,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         r.id === id ? { ...r, feedback, autoConfirmed, correctedType } : r,
       ),
     );
+    if (canSync && feedback) {
+      void (async () => {
+        const serverId = (await pendingSaves.current.get(id)) ?? historyRef.current.find((r) => r.id === id)?.serverId;
+        if (serverId) await historyService.setFeedback(serverId, feedback, correctedType).catch(() => undefined);
+      })();
+    }
     console.info(
       `[GreenNode] [Feedback] ${id} → ${feedback}${autoConfirmed ? ' (auto)' : ''}` +
         (correctedType ? ` · tipo real: ${correctedType}` : ''),
@@ -123,6 +207,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         history,
         addClassification,
         setClassificationFeedback,
+        removeClassification,
+        clearHistory,
         connectionState,
         publishCount,
         lastPublishedAt,

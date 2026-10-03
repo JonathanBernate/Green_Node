@@ -7,3 +7,4 @@ export * from './reportService';
 export * from './classificationService';
 export * from './lessonService';
 export * from './containerLocationService';
+export * from './historyService';
