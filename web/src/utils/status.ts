@@ -38,3 +38,11 @@ export function formatAgo(iso: string | undefined, now = Date.now()): string {
   if (s < 3600) return `hace ${Math.round(s / 60)} min`;
   return `hace ${Math.round(s / 3600)} h`;
 }
+
+/** "hace 12 s" a partir de una antigüedad ya calculada (p. ej. por el servidor). */
+export function formatAgeSeconds(seconds: number | null | undefined): string {
+  if (seconds == null) return '—';
+  if (seconds < 60) return `hace ${Math.round(seconds)} s`;
+  if (seconds < 3600) return `hace ${Math.round(seconds / 60)} min`;
+  return `hace ${Math.round(seconds / 3600)} h`;
+}

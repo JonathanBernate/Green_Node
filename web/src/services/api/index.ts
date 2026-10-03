@@ -6,3 +6,4 @@ export * from './networkService';
 export * from './reportService';
 export * from './classificationService';
 export * from './lessonService';
+export * from './containerLocationService';

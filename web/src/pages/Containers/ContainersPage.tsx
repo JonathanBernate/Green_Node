@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ContainersMap } from '../../components/containers/ContainersMap';
 import { ContainerDetail } from '../../components/containers/ContainerDetail';
 import { DataSourceTag } from '../../components/common/DataSourceTag';
 import { useContainers } from '../../hooks/useData';
@@ -26,6 +27,10 @@ export function ContainersPage() {
           {containers.length} nodos · <DataSourceTag source={source} />
         </p>
       </header>
+
+      <ContainersMap />
+
+      <h3 className="section-title">Nodos IoT</h3>
 
       <div className="filter-chips" role="group" aria-label="Filtrar por estado">
         {FILTERS.map((f) => (

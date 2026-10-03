@@ -16,6 +16,8 @@ export const config = {
   appVersion: '1.1.0',
   /** Umbrales de estado del contenedor (parámetros de diseño, no resultados). */
   thresholds: { warning: 70, critical: 90, offlineAfterMin: 15 },
+  /** Ubicación de contenedores: cada cuánto reporta el contenedor y cada cuánto consulta el mapa (ms). */
+  location: { reportIntervalMs: 15000, pollIntervalMs: 5000 },
   /** Umbrales de alerta de red (parámetros de diseño). */
   alerts: { latencyMs: 500, packetLossPct: 5 },
 } as const;

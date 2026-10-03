@@ -19,7 +19,23 @@ class User extends Authenticatable implements FilamentUser
 {
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        // Los contenedores inteligentes solo operan vía API; nunca entran al panel administrativo.
+        return $this->roleName() !== self::ROLE_CONTAINER;
+    }
+
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_USER = 'user';
+    public const ROLE_CONTAINER = 'contenedor';
+
+    /** Rol efectivo; usuarios anteriores a la columna `role` cuentan como "user". */
+    public function roleName(): string
+    {
+        return $this->getAttribute('role') ?: self::ROLE_USER;
+    }
+
+    public function container()
+    {
+        return $this->hasOne(Container::class);
     }
 
     /** @use HasFactory<UserFactory> */

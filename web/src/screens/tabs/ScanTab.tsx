@@ -9,7 +9,8 @@ import {
   WasteType,
 } from '../../lib/domain';
 import { useAppStore } from '../../lib/appStore';
-import { appMetrics } from '../../services/api';
+import { appMetrics, containerLocationService, isContainerUser } from '../../services/api';
+import { useAuth } from '../../app/AuthProvider';
 import { EventPanel } from '../../components/waste/EventPanel';
 import { isModelAvailable, classifyWithModel, loadModel } from '../../lib/tfClassifier';
 import { LiveScanner } from './LiveScanner';
@@ -20,6 +21,9 @@ type Status = 'idle' | 'classifying' | 'done';
 
 export function ScanTab() {
   const { addClassification, setClassificationFeedback } = useAppStore();
+  const { user } = useAuth();
+  // Rol 'contenedor': cada clasificación se registra en el backend asociada a su contenedor.
+  const [containerSync, setContainerSync] = useState<'idle' | 'saved' | 'failed'>('idle');
   const [mode, setMode] = useState<Mode>('camera');
   const [status, setStatus] = useState<Status>('idle');
   const [result, setResult] = useState<ClassificationResult | null>(null);
@@ -305,6 +309,13 @@ export function ScanTab() {
     setResult(r);
     setStatus('done');
     addClassification(r);
+    if (isContainerUser(user)) {
+      setContainerSync('idle');
+      containerLocationService
+        .submitClassification({ wasteType: r.wasteType, confidence: r.confidence, model: r.model, inferenceTimeMs: r.inferenceTimeMs, simulated: r.simulated, timestamp: r.timestamp })
+        .then(() => setContainerSync('saved'))
+        .catch(() => setContainerSync('failed'));
+    }
     if (!r.simulated) appMetrics.record('inference', r.inferenceTimeMs, true);
   };
 
@@ -333,6 +344,9 @@ export function ScanTab() {
           {realModel === false && <span className="model-tag sim"> · simulación</span>}
         </p>
       </header>
+
+      {containerSync === 'saved' && <p className="inference-meta" role="status">Clasificación registrada en tu contenedor.</p>}
+      {containerSync === 'failed' && <div className="alert-box" role="alert">No se pudo registrar la clasificación en el servidor.</div>}
 
       {/* Selector de modo */}
       {status !== 'done' && (

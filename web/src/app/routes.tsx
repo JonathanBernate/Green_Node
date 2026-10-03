@@ -1,4 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useAuth } from './AuthProvider';
+import { ContainerKioskLayout } from '../components/layout/ContainerKioskLayout';
+import { isContainerUser } from '../services/api';
 import { AppLayout } from '../components/layout/AppLayout';
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { ContainersPage } from '../pages/Containers/ContainersPage';
@@ -12,7 +15,21 @@ import { MapTab } from '../screens/tabs/MapTab';
 import { HistoryTab } from '../screens/tabs/HistoryTab';
 import { EducationTab } from '../screens/tabs/EducationTab';
 
+/** Rol 'contenedor': únicamente la clasificación de residuos. El backend aplica el mismo límite. */
+function ContainerRoutes() {
+  return (
+    <Routes>
+      <Route element={<ContainerKioskLayout />}>
+        <Route path="classification" element={<ScanTab />} />
+        <Route path="*" element={<Navigate to="/classification" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
 export function AppRoutes() {
+  const { user } = useAuth();
+  if (isContainerUser(user)) return <ContainerRoutes />;
   return (
     <Routes>
       <Route element={<AppLayout />}>

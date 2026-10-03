@@ -30,28 +30,29 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'user' => [
-                'id' => (string) $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'points' => $user->totalPoints(),
-                'level' => $user->level(),
-            ],
+            'user' => $this->payload($user),
             'token' => $token,
         ]);
     }
 
     public function user(Request $request): JsonResponse
     {
-        $user = $request->user();
+        return response()->json($this->payload($request->user()));
+    }
 
-        return response()->json([
+    private function payload(User $user): array
+    {
+        $container = $user->roleName() === User::ROLE_CONTAINER ? $user->container : null;
+
+        return [
             'id' => (string) $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'role' => $user->roleName(),
             'points' => $user->totalPoints(),
             'level' => $user->level(),
-        ]);
+            'container' => $container ? ['id' => $container->identifier, 'name' => $container->name ?: $container->identifier] : null,
+        ];
     }
 
     public function logout(Request $request): JsonResponse

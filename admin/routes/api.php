@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContainerClassificationController;
+use App\Http\Controllers\Api\ContainerLocationController;
 use App\Http\Controllers\Api\LessonController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,3 +20,15 @@ Route::middleware('auth:sanctum')->prefix('lessons')->group(function () {
     Route::delete('/{lesson}/progress', [LessonController::class, 'resetProgress'])->whereNumber('lesson');
 });
 Route::middleware('auth:sanctum')->get('/lesson-categories', [LessonController::class, 'categories']);
+
+// Rol "contenedor": clasifica residuos y reporta su ubicación (webhook). La identidad sale del token.
+Route::middleware(['auth:sanctum', 'role:contenedor'])->group(function () {
+    Route::post('/webhooks/container-location', [ContainerLocationController::class, 'store'])->middleware('throttle:120,1');
+    Route::post('/container/classifications', [ContainerClassificationController::class, 'store'])->middleware('throttle:60,1');
+});
+
+// Consulta de ubicaciones: roles distintos de "contenedor".
+Route::middleware(['auth:sanctum', 'role:admin,user'])->prefix('containers')->group(function () {
+    Route::get('/locations', [ContainerLocationController::class, 'index']);
+    Route::get('/{container:identifier}/location', [ContainerLocationController::class, 'show']);
+});
