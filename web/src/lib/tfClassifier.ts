@@ -12,8 +12,10 @@
  * Si el modelo no está presente, isModelAvailable() devuelve false y el
  * llamador recurre a la clasificación simulada.
  *
- * Preprocesamiento: idéntico al del entrenamiento
- * (mobilenet_v2.preprocess_input → rango [-1, 1]).
+ * Preprocesamiento: el modelo YA incluye mobilenet_v2.preprocess_input en su
+ * grafo (primeras operaciones: MUL por 1/127.5 y SUB 1), así que la entrada
+ * debe ser el píxel crudo en [0, 255]. Normalizar aquí otra vez aplasta la
+ * imagen contra -1 y las predicciones dejan de depender de la foto.
  */
 
 import { ClassificationResult, WasteType } from './domain';
@@ -163,12 +165,10 @@ export async function classifyWithModel(imageSrc: string): Promise<Classificatio
   const start = performance.now();
   const imgEl = await loadImageElement(imageSrc);
 
-  // Preprocesar a [1,224,224,3] en rango [-1,1] (mobilenet_v2.preprocess_input)
+  // [1,224,224,3] float32 en [0,255]: la normalización a [-1,1] la hace el propio modelo
   const input = tf.tidy(() => {
-    let t = tf.browser.fromPixels(imgEl).toFloat();
-    t = tf.image.resizeBilinear(t, [IMG_SIZE, IMG_SIZE]);
-    t = t.div(127.5).sub(1);
-    return t.expandDims(0);
+    const t = tf.browser.fromPixels(imgEl).toFloat();
+    return tf.image.resizeBilinear(t, [IMG_SIZE, IMG_SIZE]).expandDims(0);
   });
 
   const output = m.predict(input);

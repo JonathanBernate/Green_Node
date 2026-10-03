@@ -11,7 +11,7 @@ export interface LivePrediction {
   confidence: number;
   group: WasteGroup;
   waste_type: string | null;
-  top3: { label: string; confidence: number; group: WasteGroup }[];
+  top3: { label: string; confidence: number; group: WasteGroup; waste_type?: string | null }[];
   inference_ms: number;
   model?: string;
 }
@@ -52,6 +52,56 @@ export const LABEL_ES: Record<string, string> = {
   shoes: 'Calzado',
   trash: 'Basura general',
 };
+
+import { Bin, WASTE_TYPE_BIN, WasteType } from './domain';
+
+/** Caneca (Resolución 2184/2019) para una predicción del servicio en vivo. */
+export function binForLive(p: Pick<LivePrediction, 'group' | 'waste_type'>): Bin {
+  if (p.waste_type && p.waste_type in WASTE_TYPE_BIN) return WASTE_TYPE_BIN[p.waste_type as WasteType];
+  // Sin tipo equivalente (ropa, calzado, basura general): según el grupo
+  if (p.group === 'organico') return 'verde';
+  if (p.group === 'reciclable') return 'blanca';
+  return 'negra';
+}
+
+/**
+ * Suaviza el video: acumula las últimas N predicciones (top-3 ponderado por
+ * confianza) y devuelve la etiqueta dominante solo si es consistente.
+ */
+export class LiveSmoother {
+  private window: LivePrediction[] = [];
+
+  constructor(
+    private size = 5,
+    private minShare = 0.45,
+    private minFrames = 3,
+  ) {}
+
+  reset() {
+    this.window = [];
+  }
+
+  push(p: LivePrediction): { label: string; confidence: number; prediction: LivePrediction } | null {
+    this.window.push(p);
+    if (this.window.length > this.size) this.window.shift();
+    if (this.window.length < this.minFrames) return null;
+
+    const score = new Map<string, number>();
+    const latest = new Map<string, LivePrediction>();
+    for (const frame of this.window) {
+      for (const t of frame.top3.length ? frame.top3 : [frame]) {
+        score.set(t.label, (score.get(t.label) ?? 0) + t.confidence);
+      }
+      latest.set(frame.label, frame);
+    }
+    const [label, total] = [...score.entries()].sort((a, b) => b[1] - a[1])[0];
+    const confidence = total / this.window.length;
+    const base = latest.get(label) ?? [...this.window].reverse().find((f) => f.top3.some((t) => t.label === label));
+    if (!base || confidence < this.minShare) return null;
+    const top = base.top3.find((t) => t.label === label);
+    return { label, confidence, prediction: { ...base, label, group: top?.group ?? base.group, waste_type: top?.waste_type ?? base.waste_type } };
+  }
+}
 
 function wsUrl(): string {
   const override = import.meta.env.VITE_LIVE_API_URL as string | undefined;

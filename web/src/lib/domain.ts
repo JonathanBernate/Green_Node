@@ -114,6 +114,15 @@ export interface ClassificationResult {
   simulated?: boolean;
   /** Nombre del modelo que produjo la predicción, si se conoce. */
   model?: string;
+  /** Objeto detectado por el modelo (etiqueta original, p. ej. 'green-glass'). */
+  detectedLabel?: string;
+  /**
+   * true si el modelo detectó algo (ropa, calzado, basura general) sin equivalente entre los 6 tipos del
+   * sistema: `wasteType` es solo un valor de relleno y no debe mostrarse ni guardarse.
+   */
+  unmapped?: boolean;
+  /** Caneca determinada por el modelo; si falta se deduce de `wasteType`. */
+  bin?: Bin;
   /** Id en el servidor (historial persistido en Laravel). Ausente en resultados simulados. */
   serverId?: number;
 }

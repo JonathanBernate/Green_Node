@@ -1,27 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { EventPanel } from '../../components/waste/EventPanel';
+import { TargetFrame } from '../../components/waste/TargetFrame';
+import { targetCrop } from '../../lib/targetFrame';
+import { BinResult } from '../../components/waste/BinResult';
+import { useAppStore } from '../../lib/appStore';
+import { BIN_COLORS, BIN_LABELS, Bin, WasteType } from '../../lib/domain';
 import { appMetrics } from '../../services/api';
 import {
   GROUP_COLORS,
   GROUP_ICONS,
-  GROUP_LABELS,
   LABEL_ES,
   LiveClassifierClient,
   LivePrediction,
+  LiveSmoother,
   LiveStatus,
   WasteGroup,
+  binForLive,
 } from '../../lib/liveClassifier';
 
 const FRAME_INTERVAL_MS = 350;
-const FRAME_WIDTH = 320;
-const MIN_CONFIDENCE = 0.6;
-const STABLE_FRAMES = 2; // predicciones consecutivas iguales para cambiar la etiqueta
+const FRAME_SIDE = 320; // lado del recorte (el modelo lo reescala a 224)
+const MIN_CONFIDENCE = 0.5; // sobre el promedio de los últimos fotogramas, no sobre uno solo
 
 interface Shown {
   label: string;
   group: WasteGroup;
   confidence: number;
+  bin: Bin;
+  wasteType: WasteType | null;
 }
 
 /**
@@ -29,6 +36,8 @@ interface Shown {
  * con el modelo de Hugging Face servido por el backend Python (/realtime).
  */
 export function LiveScanner() {
+  const { addClassification } = useAppStore();
+  const [saved, setSaved] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraOn, setCameraOn] = useState(false);
@@ -40,24 +49,48 @@ export function LiveScanner() {
 
   const clientRef = useRef<LiveClassifierClient | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // Suavizado: candidato actual y cuántas veces seguidas se ha repetido
-  const candidateRef = useRef<{ label: string; count: number }>({ label: '', count: 0 });
+  // Suavizado: votación ponderada sobre los últimos fotogramas
+  const smootherRef = useRef(new LiveSmoother());
 
   const handleResult = (p: LivePrediction) => {
     setLatency(p.inference_ms);
     appMetrics.record('inference:live', p.inference_ms, true);
     if (p.model) setModel(p.model);
     setTop3(p.top3);
-    if (p.confidence < MIN_CONFIDENCE) {
-      candidateRef.current = { label: '', count: 0 };
+    const smooth = smootherRef.current.push(p);
+    if (!smooth || smooth.confidence < MIN_CONFIDENCE) {
       setShown(null);
       return;
     }
-    const c = candidateRef.current;
-    candidateRef.current = c.label === p.label ? { label: p.label, count: c.count + 1 } : { label: p.label, count: 1 };
-    if (candidateRef.current.count >= STABLE_FRAMES) {
-      setShown({ label: p.label, group: p.group, confidence: p.confidence });
-    }
+    const pred = smooth.prediction;
+    setShown((prev) => {
+      if (prev?.label !== smooth.label) setSaved(false);
+      return {
+        label: smooth.label,
+        group: pred.group,
+        confidence: smooth.confidence,
+        bin: binForLive(pred),
+        wasteType: (pred.waste_type as WasteType | null) ?? null,
+      };
+    });
+  };
+
+  const save = () => {
+    if (!shown?.wasteType) return;
+    addClassification({
+      id: `cls_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      wasteType: shown.wasteType,
+      confidence: shown.confidence,
+      probabilities: [],
+      isLowConfidence: shown.confidence < 0.5,
+      inferenceTimeMs: latency ?? 0,
+      timestamp: new Date().toISOString(),
+      feedback: null,
+      autoConfirmed: false,
+      correctedType: null,
+      model,
+    });
+    setSaved(true);
   };
 
   // Cámara
@@ -105,9 +138,10 @@ export function LiveScanner() {
     const timer = setInterval(() => {
       const v = videoRef.current;
       if (!v || v.videoWidth === 0 || v.readyState < 2) return;
-      canvas.width = FRAME_WIDTH;
-      canvas.height = Math.round((FRAME_WIDTH * v.videoHeight) / v.videoWidth);
-      canvas.getContext('2d')?.drawImage(v, 0, 0, canvas.width, canvas.height);
+      // Solo el contenido del marco de enfoque llega al modelo
+      const { sx, sy, side } = targetCrop(v.videoWidth, v.videoHeight, v.clientWidth, v.clientHeight);
+      canvas.width = canvas.height = FRAME_SIDE;
+      canvas.getContext('2d')?.drawImage(v, sx, sy, side, side, 0, 0, FRAME_SIDE, FRAME_SIDE);
       canvas.toBlob((blob) => blob && client.send(blob), 'image/jpeg', 0.7);
     }, FRAME_INTERVAL_MS);
 
@@ -118,19 +152,22 @@ export function LiveScanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const color = shown ? GROUP_COLORS[shown.group] : undefined;
+  const color = shown ? BIN_COLORS[shown.bin] : undefined;
 
   return (
     <div className="live-scanner">
       <div className="camera-live">
         <video ref={videoRef} className="camera-video" playsInline muted />
 
+        {cameraOn && <TargetFrame color={color} hint={shown ? '' : 'Coloca el residuo dentro del marco'} />}
+
         {cameraOn && (
           <div className="live-badge" style={{ borderColor: color ?? 'rgba(255,255,255,0.4)' }}>
             {shown ? (
               <>
-                <span className="live-group" style={{ color }}>
-                  {GROUP_ICONS[shown.group]} {GROUP_LABELS[shown.group]}
+                <span className="live-group live-bin">
+                  <i className="live-bin-dot" style={{ background: color }} aria-hidden="true" />
+                  {BIN_LABELS[shown.bin]}
                 </span>
                 <span className="live-label">
                   {LABEL_ES[shown.label] ?? shown.label} · {(shown.confidence * 100).toFixed(0)}%
@@ -160,10 +197,21 @@ export function LiveScanner() {
       </div>
 
       <p className="live-status">
-        {status === 'open' && <>🟢 IA conectada{model && ` · ${model}`}{latency !== null && ` · ${latency} ms`}</>}
+        {status === 'open' && <>🟢 Modelo activo{latency !== null && ` · ${latency} ms`}</>}
         {status === 'connecting' && <>🟡 Conectando con el servicio de IA...</>}
         {status === 'closed' && <>🔴 Sin conexión con el servicio de IA (reintentando)</>}
       </p>
+
+      {shown && (
+        <div className="live-bin-panel">
+          <BinResult bin={shown.bin} />
+          {shown.wasteType && (
+            <button type="button" className="btn btn-outline" onClick={save} disabled={saved}>
+              {saved ? '✓ Guardado en tu historial' : 'Guardar en mi historial'}
+            </button>
+          )}
+        </div>
+      )}
 
       {shown && (
         <EventPanel

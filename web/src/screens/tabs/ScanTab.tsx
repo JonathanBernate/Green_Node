@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   classifyWasteSimulated,
   ClassificationResult,
@@ -6,17 +7,31 @@ import {
   WASTE_TYPE_COLORS,
   WASTE_TYPE_ICONS,
   WASTE_DISPOSAL_TIP,
+  WASTE_TYPE_BIN,
+  BIN_LABELS,
+  BIN_COLORS,
   WasteType,
 } from '../../lib/domain';
 import { useAppStore } from '../../lib/appStore';
 import { appMetrics, containerLocationService, isContainerUser } from '../../services/api';
 import { useAuth } from '../../app/AuthProvider';
+import { BinResult } from '../../components/waste/BinResult';
 import { EventPanel } from '../../components/waste/EventPanel';
+import { ModeTabs, ScanMode, modeFromSlug, slugFromMode } from '../../components/scan/ModeTabs';
+import { RecentScans } from '../../components/scan/RecentScans';
+import { Steps } from '../../components/scan/Steps';
+import { ImageCropper } from '../../components/waste/ImageCropper';
+import { cropImage } from '../../lib/cropImage';
+import type { CropBox } from '../../lib/targetFrame';
+import { TargetFrame } from '../../components/waste/TargetFrame';
+import { targetCrop } from '../../lib/targetFrame';
+import { classifyWithService, isServiceAvailable } from '../../lib/serviceClassifier';
+import { LABEL_ES } from '../../lib/liveClassifier';
 import { isModelAvailable, classifyWithModel, loadModel } from '../../lib/tfClassifier';
 import { LiveScanner } from './LiveScanner';
 import { Icon } from '../../components/Icon';
 
-type Mode = 'camera' | 'upload' | 'live';
+type Mode = ScanMode;
 type Status = 'idle' | 'classifying' | 'done';
 
 export function ScanTab() {
@@ -24,7 +39,12 @@ export function ScanTab() {
   const { user } = useAuth();
   // Rol 'contenedor': cada clasificación se registra en el backend asociada a su contenedor.
   const [containerSync, setContainerSync] = useState<'idle' | 'saved' | 'failed'>('idle');
-  const [mode, setMode] = useState<Mode>('camera');
+  // El modo vive en la URL (?modo=vivo|foto|galeria): se puede compartir y el botón "atrás" funciona
+  const [params, setParams] = useSearchParams();
+  const mode: Mode = modeFromSlug(params.get('modo'));
+  const setMode = (m: Mode) => setParams(m === 'live' ? {} : { modo: slugFromMode(m) }, { replace: true });
+  const [aiOnline, setAiOnline] = useState<boolean | null>(null);
+  useEffect(() => { void isServiceAvailable().then(setAiOnline); }, []);
   const [status, setStatus] = useState<Status>('idle');
   const [result, setResult] = useState<ClassificationResult | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -33,6 +53,9 @@ export function ScanTab() {
   // Modo del modelo: null = aún no sabemos, true = real (TFJS), false = simulado
   const [realModel, setRealModel] = useState<boolean | null>(null);
   const [lastWasReal, setLastWasReal] = useState(false);
+  // Galería: zona elegida por el usuario (null = imagen completa) y la imagen realmente analizada
+  const [crop, setCrop] = useState<CropBox | null>(null);
+  const [analyzedSrc, setAnalyzedSrc] = useState<string | null>(null);
 
   // Detecta al montar si hay un modelo real disponible en /model/
   // y lo precarga en segundo plano para que la primera clasificación sea rápida.
@@ -233,17 +256,22 @@ export function ScanTab() {
   const capturePhoto = () => {
     const video = videoRef.current;
     if (!video) return;
+    // Solo se captura lo que está dentro del marco de enfoque
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    const { sx, sy, side } = targetCrop(vw, vh, video.clientWidth, video.clientHeight);
+    const out = Math.min(Math.round(side), 800);
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = out;
+    canvas.height = out;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     // La cámara frontal se muestra espejada; corregimos al capturar
     if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
+      ctx.translate(out, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sx, sy, side, side, 0, 0, out, out);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     console.info('[GreenNode] [Camera] Foto capturada');
     stopCamera();
@@ -288,13 +316,34 @@ export function ScanTab() {
     setStatus('classifying');
     setResult(null);
 
+    // Galería: se analiza solo la zona elegida
+    let src = imageSrc;
+    if (mode === 'upload' && crop) {
+      try {
+        src = await cropImage(imageSrc, crop);
+      } catch (err) {
+        console.warn('[GreenNode] No se pudo recortar, se usa la imagen completa:', err);
+      }
+    }
+    setAnalyzedSrc(src);
+
     let r: ClassificationResult;
     let usedReal = false;
 
-    // Intenta el modelo real (TFJS) si está disponible; si no, simula.
-    if (realModel) {
+    // 1) Servicio de IA (mismo modelo que el modo en vivo)  2) modelo local TFLite  3) simulación
+    let fromService: ClassificationResult | null = null;
+    try {
+      fromService = await classifyWithService(src, { tta: mode === 'upload' });
+    } catch (err) {
+      console.warn('[GreenNode] Servicio de IA no disponible, se usa el modelo local:', err);
+    }
+
+    if (fromService) {
+      r = fromService;
+      usedReal = true;
+    } else if (realModel) {
       try {
-        r = await classifyWithModel(imageSrc);
+        r = await classifyWithModel(src);
         usedReal = true;
       } catch (err) {
         console.warn('[GreenNode] [TFJS] Falló el modelo real, usando simulación:', err);
@@ -308,8 +357,9 @@ export function ScanTab() {
     setLastWasReal(usedReal);
     setResult(r);
     setStatus('done');
-    addClassification(r);
-    if (isContainerUser(user)) {
+    // Lo que no equivale a uno de los 6 tipos (ropa, calzado, basura general) se muestra pero no se guarda
+    if (!r.unmapped) addClassification(r);
+    if (isContainerUser(user) && !r.unmapped) {
       setContainerSync('idle');
       containerLocationService
         .submitClassification({ wasteType: r.wasteType, confidence: r.confidence, model: r.model, inferenceTimeMs: r.inferenceTimeMs, simulated: r.simulated, timestamp: r.timestamp })
@@ -324,6 +374,8 @@ export function ScanTab() {
     setResult(null);
     setImageSrc(null);
     setFileName(null);
+    setCrop(null);
+    setAnalyzedSrc(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -336,40 +388,27 @@ export function ScanTab() {
 
   return (
     <div className="screen">
-      <header className="screen-header">
-        <h2>Escanear residuo</h2>
-        <p className="screen-subtitle">
-          Escanea con la cámara o adjunta una imagen · IA (MobileNetV2)
-          {realModel === true && <span className="model-tag real"> · modelo real</span>}
-          {realModel === false && <span className="model-tag sim"> · simulación</span>}
-        </p>
+      <header className="screen-header scan-header">
+        <div>
+          <h2>Escanear residuo</h2>
+          <p className="screen-subtitle">Apunta, fotografía o sube una imagen y te diremos en qué caneca va.</p>
+        </div>
+        <span className={`ai-chip ${aiOnline || realModel ? 'on' : aiOnline === false ? 'off' : ''}`} role="status" title={aiOnline ? 'Modelo del servicio de IA' : realModel ? 'Modelo local en el navegador' : undefined}>
+          <i aria-hidden="true" />
+          {aiOnline === null && realModel !== true ? 'Cargando modelo…' : aiOnline || realModel ? 'Modelo activo' : 'Sin modelo (simulación)'}
+        </span>
       </header>
 
       {containerSync === 'saved' && <p className="inference-meta" role="status">Clasificación registrada en tu contenedor.</p>}
       {containerSync === 'failed' && <div className="alert-box" role="alert">No se pudo registrar la clasificación en el servidor.</div>}
 
-      {/* Selector de modo */}
-      {status !== 'done' && (
-        <div className="mode-switch">
-          <button
-            className={`mode-btn ${mode === 'camera' ? 'active' : ''}`}
-            onClick={() => switchMode('camera')}
-          >
-            <Icon name="camera" size={16} /> Foto
-          </button>
-          <button
-            className={`mode-btn ${mode === 'live' ? 'active' : ''}`}
-            onClick={() => switchMode('live')}
-          >
-            <Icon name="bolt" size={16} /> En vivo
-          </button>
-          <button
-            className={`mode-btn ${mode === 'upload' ? 'active' : ''}`}
-            onClick={() => switchMode('upload')}
-          >
-            <Icon name="image" size={16} /> Galería
-          </button>
-        </div>
+      {status !== 'done' && <ModeTabs mode={mode} onChange={switchMode} />}
+
+      {mode !== 'live' && (
+        <Steps
+          steps={mode === 'camera' ? ['Capturar', 'Confirmar', 'Resultado'] : ['Elegir imagen', 'Ajustar zona', 'Resultado']}
+          current={status === 'done' ? 2 : imageSrc ? 1 : 0}
+        />
       )}
 
       <input
@@ -380,18 +419,21 @@ export function ScanTab() {
         onChange={handleFileInput}
       />
 
+      <div id="scan-panel" role="tabpanel" aria-labelledby={`scan-tab-${mode}`}>
       {mode === 'live' && status !== 'done' && <LiveScanner />}
 
       <div className="scan-area" style={mode === 'live' ? { display: 'none' } : undefined}>
         {status === 'done' && result ? (
           <ClassificationCard
             result={result}
-            imageSrc={imageSrc}
+            imageSrc={analyzedSrc ?? imageSrc}
             usedRealModel={lastWasReal}
             onFeedback={(fb, auto, corrected) =>
               setClassificationFeedback(result.id, fb, auto, corrected)
             }
           />
+        ) : imageSrc && mode === 'upload' && status === 'idle' ? (
+          <ImageCropper src={imageSrc} alt={fileName ?? 'Imagen elegida'} onChange={setCrop} />
         ) : imageSrc ? (
           <div className="preview-frame">
             <img src={imageSrc} alt={fileName ?? 'preview'} className="preview-img" />
@@ -411,7 +453,7 @@ export function ScanTab() {
               playsInline
               muted
             />
-            {cameraOn && <div className="scan-reticle" />}
+            {cameraOn && <TargetFrame />}
             {cameraOn && hasMultipleCameras && (
               <button
                 className="flip-camera-btn"
@@ -460,9 +502,17 @@ export function ScanTab() {
 
       <div className="scan-actions" style={mode === 'live' ? { display: 'none' } : undefined}>
         {status === 'done' ? (
-          <button className="btn btn-outline btn-large" onClick={reset}>
-            Escanear otro
-          </button>
+          <>
+            <button className="btn btn-primary btn-large" onClick={reset}>
+              <Icon name="scan" size={18} /> Escanear otro residuo
+            </button>
+            {!isContainerUser(user) && (
+              <div className="done-links">
+                <Link to="/history" className="done-link"><Icon name="history" size={16} /> Ver historial</Link>
+                <Link to="/learn" className="done-link"><Icon name="book" size={16} /> Aprender a separar</Link>
+              </div>
+            )}
+          </>
         ) : imageSrc ? (
           <>
             <button
@@ -496,6 +546,22 @@ export function ScanTab() {
           </button>
         )}
       </div>
+      </div>
+
+      {status !== 'done' && (
+        <>
+          <details className="scan-tips">
+            <summary>Consejos para clasificar mejor</summary>
+            <ul>
+              <li>Coloca <b>un solo residuo</b> dentro del marco, centrado y cerca de la cámara.</li>
+              <li>Usa <b>buena luz</b> y evita reflejos o sombras fuertes.</li>
+              <li>Fondo liso (una mesa o una pared) ayuda más que un fondo con objetos.</li>
+              <li>Si el resultado dice "baja confianza", toma otra foto desde otro ángulo.</li>
+            </ul>
+          </details>
+          {!isContainerUser(user) && <RecentScans />}
+        </>
+      )}
     </div>
   );
 }
@@ -517,7 +583,12 @@ function ClassificationCard({
     correctedType?: WasteType | null,
   ) => void;
 }) {
-  const color = WASTE_TYPE_COLORS[result.wasteType];
+  // 'unmapped': el modelo detectó algo sin equivalente entre los 6 tipos (ropa, calzado, basura general)
+  const unmapped = !!result.unmapped;
+  const bin = result.bin ?? WASTE_TYPE_BIN[result.wasteType];
+  const color = unmapped ? BIN_COLORS[bin] : WASTE_TYPE_COLORS[result.wasteType];
+  const detected = result.detectedLabel ? (LABEL_ES[result.detectedLabel] ?? result.detectedLabel) : null;
+  const title = unmapped && detected ? detected : WASTE_TYPE_LABELS[result.wasteType];
 
   // Validación del usuario. Fases: 'ask' → 'choose' (elegir tipo real) → 'done'
   const [phase, setPhase] = useState<'ask' | 'choose' | 'done'>('ask');
@@ -561,28 +632,41 @@ function ClassificationCard({
   const progressPct = (secondsLeft / AUTO_CONFIRM_SECONDS) * 100;
 
   return (
-    <div className="result-card" style={{ borderColor: color }}>
-      {imageSrc && <img src={imageSrc} alt="clasificada" className="result-thumb" />}
-      <div className="result-icon" style={{ background: color + '22' }}>
-        {WASTE_TYPE_ICONS[result.wasteType]}
+    <div className="result-card rc" style={{ borderColor: color }}>
+      <div className="rc-top">
+        {imageSrc && <img src={imageSrc} alt="Imagen clasificada" className="rc-photo" style={{ borderColor: color }} />}
+        <div className="rc-head">
+          <span className="rc-kicker">Resultado</span>
+          <h3 style={{ color }}>
+            <span aria-hidden="true">{unmapped ? '🗑️' : WASTE_TYPE_ICONS[result.wasteType]}</span> {title}
+          </h3>
+          {!unmapped && detected && detected !== title && <p className="detected-as">Detectado: {detected}</p>}
+          <div className="rc-conf" aria-label={`Confianza ${(result.confidence * 100).toFixed(0)}%`}>
+            <div className="confidence-bar-wrap"><div className="confidence-bar" style={{ width: `${result.confidence * 100}%`, background: color }} /></div>
+            <b>{(result.confidence * 100).toFixed(0)}%</b>
+          </div>
+          <span className="rc-conf-label">{result.isLowConfidence ? 'Confianza baja' : result.confidence >= 0.8 ? 'Confianza alta' : 'Confianza media'}</span>
+        </div>
       </div>
-      <h3 style={{ color }}>{WASTE_TYPE_LABELS[result.wasteType]}</h3>
-      <div className="confidence-bar-wrap">
-        <div className="confidence-bar" style={{ width: `${result.confidence * 100}%`, background: color }} />
-      </div>
-      <p className="confidence-text">
-        Confianza: <strong>{(result.confidence * 100).toFixed(1)}%</strong>
-        {result.isLowConfidence && <span className="low-conf"> · baja confianza</span>}
-      </p>
+
+      <BinResult bin={bin} uncertain={result.isLowConfidence} />
+      {result.isLowConfidence && !result.simulated && (
+        <p className="low-conf-tip" role="note">
+          No estoy seguro de este resultado. Toma otra foto con buena luz, con el objeto centrado y sin otros residuos alrededor.
+        </p>
+      )}
       {result.simulated && (
         <div className="notice-sim" role="alert">
           <b>RESULTADO SIMULADO.</b> No hay modelo cargado: esta categoría es aleatoria y no es una predicción real.
         </div>
       )}
-      <p className="disposal-tip">💡 {WASTE_DISPOSAL_TIP[result.wasteType]}</p>
+      <p className="disposal-tip">
+        💡 {unmapped ? `${BIN_LABELS[bin]}: no es un residuo aprovechable. Si está limpio y en buen estado, considera donarlo.` : WASTE_DISPOSAL_TIP[result.wasteType]}
+      </p>
+      {unmapped && <p className="inference-meta">Este tipo de residuo no está entre los 6 que registra GreenNode, por eso no se guarda en tu historial.</p>}
 
       {/* --- Validación del usuario --- */}
-      <div className="feedback-box">
+      {!unmapped && <div className="feedback-box">
         {phase === 'ask' && (
           <>
             <p className="feedback-question">¿La clasificación es correcta?</p>
@@ -636,7 +720,7 @@ function ClassificationCard({
                 ✗ Incorrecta · tipo real:{' '}
                 {correctedType ? (
                   <strong style={{ color: WASTE_TYPE_COLORS[correctedType] }}>
-                    {WASTE_TYPE_ICONS[correctedType]} {WASTE_TYPE_LABELS[correctedType]}
+                    {WASTE_TYPE_ICONS[correctedType]} {WASTE_TYPE_LABELS[correctedType]} → {BIN_LABELS[WASTE_TYPE_BIN[correctedType]]}
                   </strong>
                 ) : (
                   'no especificado'
@@ -645,9 +729,11 @@ function ClassificationCard({
             )}
           </div>
         )}
-      </div>
+      </div>}
 
-      <div className="prob-list">
+      <details className="rc-more">
+        <summary>Ver detalles del análisis</summary>
+      {!unmapped && <div className="prob-list">
         {result.probabilities.map((p, i) => {
           const wt = Object.values(WasteType)[i];
           return (
@@ -665,19 +751,20 @@ function ClassificationCard({
             </div>
           );
         })}
-      </div>
+      </div>}
 
-      <EventPanel
+      {!unmapped && <EventPanel
         classification={result.wasteType}
         confidence={result.confidence}
         model={result.model}
         inferenceTimeMs={result.inferenceTimeMs}
         disabledReason={result.simulated ? 'Los resultados simulados no se envían al sistema.' : undefined}
-      />
+      />}
 
       <p className="inference-meta">
-        Inferencia en {result.inferenceTimeMs} ms · {result.model ?? (usedRealModel ? 'modelo real' : 'simulación')}
+        Inferencia en {result.inferenceTimeMs} ms · {result.simulated ? 'simulación' : 'modelo real'}
       </p>
+      </details>
     </div>
   );
 }
