@@ -115,6 +115,41 @@ class ContainerLocationTest extends TestCase
         $this->getJson('/api/containers/cont-001/location')->assertOk()->assertJsonPath('container_id', 'cont-001');
     }
 
+    public function test_connection_details_per_container_and_ip_only_for_admin(): void
+    {
+        Sanctum::actingAs($this->boxUser);
+        foreach ([40, 25, 10] as $secondsAgo) {
+            $this->postJson('/api/webhooks/container-location', $this->payload(['timestamp' => now()->subSeconds($secondsAgo)->toIso8601String()]), ['User-Agent' => 'Mozilla/5.0 (iPhone)'])->assertOk();
+        }
+
+        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->citizen);
+        $res = $this->getJson('/api/containers/connections')->assertOk();
+        $c1 = collect($res->json('data'))->firstWhere('container_id', 'cont-001');
+        $this->assertSame('online', $c1['status']);
+        $this->assertSame(3, $c1['reports_window']);
+        $this->assertCount(3, $c1['series']);
+        $this->assertGreaterThanOrEqual(0, $c1['latency_last_ms']);
+        $this->assertNull($c1['ip']); // usuarios normales no ven IP ni dispositivo
+        $this->assertNull($c1['user_agent']);
+        $c2 = collect($res->json('data'))->firstWhere('container_id', 'cont-002');
+        $this->assertSame('none', $c2['status']);
+        $this->assertSame(0, $c2['reports_window']);
+
+        $this->app['auth']->forgetGuards();
+        $admin = User::create(['name' => 'Admin', 'email' => 'adm@test.co', 'password' => 'x']);
+        $admin->role = 'admin';
+        $admin->save();
+        Sanctum::actingAs($admin);
+        $c1 = collect($this->getJson('/api/containers/connections')->json('data'))->firstWhere('container_id', 'cont-001');
+        $this->assertNotNull($c1['ip']);
+        $this->assertStringContainsString('iPhone', $c1['user_agent']);
+
+        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->boxUser);
+        $this->getJson('/api/containers/connections')->assertForbidden();
+    }
+
     public function test_stale_status_after_threshold(): void
     {
         $c = Container::where('identifier', 'cont-001')->first();

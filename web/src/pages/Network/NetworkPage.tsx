@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LiveConnections } from '../../components/network/LiveConnections';
 import { DataSourceTag } from '../../components/common/DataSourceTag';
 import { Kpi } from '../../components/common/Kpi';
 import { BarChart, LineChart } from '../../components/metrics/charts';
@@ -35,6 +36,10 @@ export function NetworkPage() {
           Métricas de cobertura, tráfico, latencia y escalabilidad · <DataSourceTag source={source} />
         </p>
       </header>
+
+      <LiveConnections />
+
+      <h3 className="section-title">Métricas de la red</h3>
 
       {source === 'SIMULATION' && (
         <div className="notice-sim" role="note">

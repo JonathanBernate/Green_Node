@@ -30,9 +30,23 @@ class ContainerLocationController extends Controller
         }
 
         $locatedAt = \Illuminate\Support\Carbon::parse($data['timestamp']);
+        $received = now();
 
         // Lecturas fuera de orden (más antiguas que la ya registrada) no pisan la última ubicación.
-        if ($container->last_located_at && $locatedAt->lessThanOrEqualTo($container->last_located_at)) {
+        $outOfOrder = $container->last_located_at && $locatedAt->lessThanOrEqualTo($container->last_located_at);
+
+        $container->linkEvents()->create([
+            'received_at' => $received,
+            'device_at' => $locatedAt,
+            'latency_ms' => max(0, (int) round($locatedAt->diffInMilliseconds($received, false))),
+            'accuracy_m' => $data['accuracy'] ?? null,
+            'ip' => $request->ip(),
+            'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
+            'accepted' => ! $outOfOrder,
+        ]);
+        $container->linkEvents()->where('received_at', '<', $received->copy()->subMinutes(Container::LINK_RETENTION_MINUTES))->delete();
+
+        if ($outOfOrder) {
             return response()->json(['updated' => false, 'location' => $this->present($container)]);
         }
 

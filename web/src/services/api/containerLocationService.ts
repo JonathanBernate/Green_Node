@@ -62,3 +62,45 @@ export const containerLocationService = {
     });
   },
 };
+
+export type LinkQuality = 'good' | 'fair' | 'poor' | 'lost' | 'none';
+
+export interface ContainerConnection {
+  container_id: string;
+  name: string;
+  status: LocationStatus;
+  quality: LinkQuality;
+  last_seen_at: string | null;
+  age_seconds: number | null;
+  device_at: string | null;
+  reports_window: number;
+  reports_ignored_window: number;
+  reports_hour: number;
+  /** % de reportes recibidos respecto a los esperados en la ventana. null = muestra insuficiente. */
+  delivery_pct: number | null;
+  avg_interval_s: number | null;
+  jitter_s: number | null;
+  /** Estimada: hora de recepción − hora del dispositivo (depende del reloj del dispositivo). */
+  latency_last_ms: number | null;
+  latency_avg_ms: number | null;
+  accuracy_m: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Solo administradores. */
+  ip: string | null;
+  user_agent: string | null;
+  series: { t: string; latency_ms: number | null; accepted: boolean }[];
+}
+
+export interface ContainerConnectionList {
+  server_time: string;
+  expected_interval_seconds: number;
+  window_seconds: number;
+  data: ContainerConnection[];
+}
+
+export const containerConnectionService = {
+  list() {
+    return request<ContainerConnectionList>('/api/containers/connections');
+  },
+};

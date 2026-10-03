@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClassificationController;
 use App\Http\Controllers\Api\ContainerClassificationController;
+use App\Http\Controllers\Api\ContainerConnectionController;
 use App\Http\Controllers\Api\ContainerLocationController;
 use App\Http\Controllers\Api\LessonController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,7 @@ Route::middleware(['auth:sanctum', 'role:contenedor'])->group(function () {
 // Consulta de ubicaciones: roles distintos de "contenedor".
 Route::middleware(['auth:sanctum', 'role:admin,user'])->prefix('containers')->group(function () {
     Route::get('/locations', [ContainerLocationController::class, 'index']);
+    Route::get('/connections', [ContainerConnectionController::class, 'index']);
     Route::get('/{container:identifier}/location', [ContainerLocationController::class, 'show']);
 });
 

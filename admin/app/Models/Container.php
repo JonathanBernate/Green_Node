@@ -14,6 +14,12 @@ class Container extends Model
     /** Segundos sin reportar a partir de los cuales la ubicación se considera desactualizada. */
     public const ONLINE_WITHIN_SECONDS = 120;
 
+    /** Cada cuánto debe reportar un contenedor (el frontend usa el mismo valor). */
+    public const REPORT_INTERVAL_SECONDS = 15;
+
+    /** Los eventos de conexión se conservan este tiempo. */
+    public const LINK_RETENTION_MINUTES = 60;
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -35,6 +41,11 @@ class Container extends Model
     public function classifications(): HasMany
     {
         return $this->hasMany(ContainerClassification::class);
+    }
+
+    public function linkEvents(): HasMany
+    {
+        return $this->hasMany(ContainerLinkEvent::class);
     }
 
     public function hasLocation(): bool

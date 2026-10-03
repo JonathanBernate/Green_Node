@@ -17,6 +17,7 @@ Con `VITE_USE_MOCK_DATA=true` (por defecto) el frontend no llama a los endpoints
 | ✅ | `POST /api/webhooks/container-location` `{container_id,latitude,longitude,timestamp,accuracy?}` — **rol `contenedor`** | `containerLocationService.report` | `{updated, location}`; 403 si `container_id` no es el del token |
 | ✅ | `POST /api/container/classifications` `{waste_type,confidence,model?,inference_time_ms?,simulated?,timestamp?}` — **rol `contenedor`** | `containerLocationService.submitClassification` | 201 `{id,container_id,waste_type}` |
 | ✅ | `GET /api/containers/locations` — roles `admin`,`user` | `containerLocationService.list` | `{server_time,online_within_seconds,data:ContainerLocation[]}` (`status`: `online`\|`stale`\|`none`) |
+| ✅ | `GET /api/containers/connections` — roles `admin`,`user` (IP y dispositivo solo `admin`) | `containerConnectionService.list` | `{server_time,expected_interval_seconds,window_seconds,data:ContainerConnection[]}` (entrega 5 min, intervalo, jitter, latencia estimada, serie de los últimos 20 reportes) |
 | ✅ | `GET /api/containers/{code}/location` — roles `admin`,`user` | — | `ContainerLocation` |
 | ⏳ | `GET /up` (health) | `useConnectionStatus` | 200 si el servidor está vivo |
 | ⏳ | `POST /api/classification` (multipart `image`) | `classificationService.classifyImage` | `{class, confidence, model, inference_time_ms}` |
