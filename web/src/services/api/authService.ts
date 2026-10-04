@@ -18,10 +18,40 @@ export interface AuthUser {
 
 export const isContainerUser = (u: Pick<AuthUser, 'role'> | null | undefined) => u?.role === 'contenedor';
 
+export interface RegisterInput {
+  name: string;
+  email: string;
+  password: string;
+  confirm: string;
+  role: 'user' | 'contenedor';
+  containerName?: string;
+  containerAddress?: string;
+  registrationCode?: string;
+}
+
 /** Autenticación contra el backend Laravel (Sanctum). Endpoints existentes. */
 export const authService = {
   async login(email: string, password: string): Promise<{ user: AuthUser; token: string }> {
     return request('/api/login', { method: 'POST', body: { email, password }, auth: false });
+  },
+  async register(input: RegisterInput): Promise<{ user: AuthUser; token: string }> {
+    const body: Record<string, unknown> = {
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      password_confirmation: input.confirm,
+      role: input.role,
+    };
+    if (input.role === 'contenedor') {
+      body.container_name = input.containerName;
+      body.container_address = input.containerAddress;
+      if (input.registrationCode) body.registration_code = input.registrationCode;
+    }
+    return request('/api/register', { method: 'POST', auth: false, body });
+  },
+  /** ¿Exige el servidor un código para registrar contenedores? */
+  async registerOptions(): Promise<{ container_code_required: boolean }> {
+    return request('/api/register/options', { auth: false, timeoutMs: 5000 });
   },
   async logout(): Promise<void> {
     try {

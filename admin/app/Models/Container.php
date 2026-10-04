@@ -33,6 +33,29 @@ class Container extends Model
         ];
     }
 
+    /**
+     * Crea un contenedor asignado a un usuario con el siguiente identificador libre (CONT-001, CONT-002…).
+     * `latitude/longitude` son la posición de instalación, que aún no se conoce: la ubicación real llega por el webhook.
+     * `waste_type` es obligatorio en la tabla; un contenedor inteligente acepta todo, así que se deja el valor por defecto.
+     * Debe llamarse dentro de una transacción.
+     */
+    public static function provisionFor(User $user, string $name, string $address, string $wasteType = 'organic'): self
+    {
+        $max = static::withTrashed()->lockForUpdate()->pluck('identifier')
+            ->map(fn ($id) => (int) preg_replace('/\D/', '', (string) $id))->max() ?? 0;
+
+        return static::create([
+            'identifier' => sprintf('CONT-%03d', $max + 1),
+            'name' => $name,
+            'address' => $address,
+            'latitude' => 0,
+            'longitude' => 0,
+            'waste_type' => $wasteType,
+            'capacity_kg' => 100,
+            'user_id' => $user->id,
+        ]);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

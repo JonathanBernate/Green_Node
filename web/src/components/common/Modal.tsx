@@ -4,10 +4,11 @@ interface Props {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  className?: string;
 }
 
 /** Diálogo accesible: role=dialog, cierra con Esc y devuelve el foco al cerrar. */
-export function Modal({ title, onClose, children }: Props) {
+export function Modal({ title, onClose, children, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export function Modal({ title, onClose, children }: Props) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-card"
+        className={className ? `modal-card ${className}` : 'modal-card'}
         role="dialog"
         aria-modal="true"
         aria-label={title}

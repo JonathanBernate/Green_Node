@@ -21,8 +21,11 @@ return new class extends Migration
                 $table->id();
                 $table->string('identifier')->unique();
                 $table->string('address')->nullable();
-                $table->decimal('latitude', 10, 8)->nullable();
-                $table->decimal('longitude', 11, 8)->nullable();
+                $table->decimal('latitude', 10, 8)->default(0);
+                $table->decimal('longitude', 11, 8)->default(0);
+                $table->string('waste_type')->default('organic');
+                $table->unsignedInteger('capacity_kg')->default(100);
+                $table->unsignedInteger('current_level_kg')->default(0);
                 $table->string('status')->default('active');
                 $table->timestamps();
                 $table->softDeletes();

@@ -9,5 +9,6 @@ Ambos archivos se descargan al final del notebook ml/GreenNode_Entrenamiento.ipy
 Mientras waste_classifier_v1.tflite no exista, la app usa clasificación
 simulada automáticamente.
 
-Nota: el modelo actual entrena con 5 clases (sin 'organic', porque TrashNet
-no la incluye). labels.json refleja ese orden y el codigo se adapta solo.
+Nota: el modelo actual tiene 6 clases (ver labels.json) y NORMALIZA LA ENTRADA POR SI MISMO
+(incluye mobilenet_v2.preprocess_input). Hay que enviarle pixeles crudos en [0, 255]; si se
+normaliza a [-1, 1] antes, las predicciones dejan de depender de la imagen.

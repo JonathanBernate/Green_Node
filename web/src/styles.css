@@ -745,20 +745,25 @@ html, body { background: var(--bg); }
   .modal-card::before { display: none; }
 
   /* Login a dos columnas */
-  .login-page { flex-direction: row; }
+  .login-page { flex-direction: row; align-items: flex-start; }
+  /* El panel del logo se queda fijo a la altura de la ventana mientras el formulario (largo en el registro) se desplaza */
   .login-hero {
     flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center;
     padding: 60px 56px;
+    position: sticky; top: 0; height: 100vh; height: 100dvh;
   }
   .login-hero .logo-section { max-width: 440px; }
   .logo-title { font-size: 48px; }
   .logo-subtitle { font-size: 18px; max-width: 380px; }
   .login-sheet {
     flex: 1 1 0; min-width: 0; margin: 0; border-radius: 0; box-shadow: none;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    padding: 48px 32px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 32px; min-height: 100vh; min-height: 100dvh;
   }
   .login-sheet > * { width: 100%; max-width: 400px; }
+  /* Centrado vertical que NO recorta cuando el contenido es más alto que la ventana */
+  .login-sheet > :first-child { margin-top: auto; }
+  .login-sheet > :last-child { margin-bottom: auto; }
 }
 
 /* ---------- Escritorio: cuadrículas multicolumna ---------- */
@@ -1663,3 +1668,63 @@ h4.md-h { font-size: 16px; }
   .mode-tab { padding: 12px 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .mode-tabs::before { transition: none; } .ai-chip.on i { animation: none; } }
+
+/* ===== Registro ===== */
+.link-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 800; color: var(--brand-dark); cursor: pointer; text-decoration: underline; }
+.reg-rules { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-3); }
+.reg-rules li.ok { color: var(--brand-dark); font-weight: 700; }
+.login-sheet .pw-meter { margin-top: 8px; }
+.role-picker { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.role-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; text-align: left; background: var(--neutral-100); border: 2px solid transparent; border-radius: 16px; font: inherit; color: var(--ink-2); cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.12s; }
+.role-card:hover { background: #fff; border-color: var(--brand-mid); }
+.role-card.on { background: var(--brand-soft); border-color: var(--brand); color: var(--ink); }
+.role-card b { font-size: 15px; }
+.role-card small { font-size: 11.5px; line-height: 1.35; color: var(--ink-3); }
+.role-icon { width: 34px; height: 34px; border-radius: 11px; background: #fff; color: var(--ink-3); display: flex; align-items: center; justify-content: center; }
+.role-card.on .role-icon { background: var(--brand); color: #fff; }
+.container-fields { margin: 4px 0 16px; padding: 14px; border: 1.5px dashed var(--brand-mid); border-radius: 16px; background: #FBFEFC; animation: hx-in 0.25s both; }
+.container-fields h3 { margin: 0 0 12px; font-size: 14px; font-weight: 800; color: var(--brand-dark); }
+.container-fields .input-group:last-of-type { margin-bottom: 8px; }
+select.input-field { appearance: none; background: transparent; cursor: pointer; }
+@media (max-width: 380px) { .role-grid { grid-template-columns: 1fr; } }
+
+/* Registro: formulario largo → encabezado compacto en móvil */
+@media (max-width: 767px) {
+  .login-page.register .login-hero { padding: calc(24px + var(--safe-top)) 24px 52px; }
+  .login-page.register .logo-circle { width: 46px; height: 46px; border-radius: 15px; margin-bottom: 10px; }
+  .login-page.register .logo-title { font-size: 26px; }
+  .login-page.register .logo-subtitle { font-size: 13.5px; margin-top: 2px; }
+}
+
+/* ===== Términos y condiciones ===== */
+.legal-note { margin: 14px 0 0; text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--ink-3); }
+/* Modal de términos: hoja con scroll propio (el índice y el cuerpo viven dentro) */
+.terms-modal { display: flex; flex-direction: column; max-height: min(92dvh, 900px); }
+.terms-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.legal-updated { margin: 6px 0 12px; font-size: 13px; color: var(--ink-3); }
+.legal-intro { margin: 0 0 20px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.legal-layout { display: flex; flex-direction: column; gap: 16px; }
+.legal-toc { background: #fff; border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 14px 16px; }
+.legal-toc b { display: block; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); }
+.legal-toc ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 14px; }
+.legal-toc a { color: var(--ink-2); text-decoration: none; }
+.legal-toc a:hover { color: var(--brand-dark); text-decoration: underline; }
+.legal-body { background: #fff; border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: 8px 20px 24px; min-width: 0; }
+.legal-body section { padding: 18px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 8px; }
+.legal-body h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.legal-body h2 span { flex: none; width: 28px; height: 28px; border-radius: 9px; background: var(--brand-soft); color: var(--brand-dark); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+.legal-body p, .legal-body li { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.legal-body p { margin: 0 0 10px; }
+.legal-body ul { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+.legal-end { margin-top: 20px !important; font-weight: 700; color: var(--ink) !important; }
+.legal-ok { width: 100%; max-width: 280px; margin-top: 8px; }
+@media (min-width: 900px) {
+  .legal-layout { flex-direction: row; align-items: flex-start; gap: 24px; }
+  .legal-toc { position: sticky; top: 0; width: 260px; flex: none; }
+  .legal-body { flex: 1; padding: 8px 32px 28px; }
+}
+/* El modal de términos es más ancho que el genérico para caber el índice + cuerpo */
+@media (min-width: 768px) {
+  .terms-modal { max-width: 760px; max-height: min(86dvh, 820px); }
+}

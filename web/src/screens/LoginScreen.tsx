@@ -4,9 +4,11 @@ import { ApiError, authService, AuthUser } from '../services/api';
 
 interface Props {
   onLogin: (user: AuthUser, token: string) => void;
+  onRegister?: () => void;
+  onTerms?: () => void;
 }
 
-export function LoginScreen({ onLogin }: Props) {
+export function LoginScreen({ onLogin, onRegister, onTerms }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -116,21 +118,16 @@ export function LoginScreen({ onLogin }: Props) {
           <button type="submit" className="btn btn-primary btn-large" disabled={loading}>
             {loading ? <div className="spinner" /> : 'Iniciar sesión'}
           </button>
-
-          <div className="divider">
-            <div className="divider-line" />
-            <span className="divider-text">o continúa con</span>
-            <div className="divider-line" />
-          </div>
-
-          <div className="social-row">
-            <button type="button" className="btn btn-outline">Google</button>
-            <button type="button" className="btn btn-outline">Apple</button>
-          </div>
         </form>
 
+        <p className="legal-note">
+          Al continuar aceptas los{' '}
+          <button type="button" className="link-btn" onClick={onTerms}>Términos y condiciones</button>
+          {' '}de GreenNode.
+        </p>
+
         <div className="footer">
-          ¿No tienes cuenta? <a onClick={() => {}}>Regístrate</a>
+          ¿No tienes cuenta? <button type="button" className="link-btn" onClick={onRegister}>Regístrate</button>
         </div>
       </div>
     </div>

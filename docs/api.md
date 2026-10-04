@@ -8,6 +8,7 @@ Con `VITE_USE_MOCK_DATA=true` (por defecto) el frontend no llama a los endpoints
 | Estado | Método y ruta | Servicio | Respuesta |
 |---|---|---|---|
 | ✅ | `POST /api/login` `{email,password}` | `authService.login` | `{user:{id,name,email,role,points,level,container}, token}` (`role`: `admin`\|`user`\|`contenedor`) |
+| ✅ | `POST /api/register` `{name,email,password,password_confirmation,role?: user\|contenedor, container_name,container_address,registration_code? (si role=contenedor)}` (admin nunca; límite 10/min) · `GET /api/register/options` → `{container_code_required}` | `authService.register` | 201 `{user, token}` · 422 con `errors` por campo en español |
 | ✅ | `GET /api/user` · `POST /api/logout` | `authService` | — |
 | ✅ | `PATCH /api/user` `{name}` · `PUT /api/user/avatar` `{avatar: data URI jpeg/png/webp ≤256 KB, ≤1024 px}` · `DELETE /api/user/avatar` · `PUT /api/user/password` `{current_password,password,password_confirmation}` | `profileService` | `User` actualizado (con `avatar`) / `{message}` |
 | ✅ | `GET /api/user/sessions` · `DELETE /api/user/sessions/{id}` · `DELETE /api/user/sessions` (todas menos la actual) | `sessionService` | `{id,device,created_at,last_used_at,current}[]` |

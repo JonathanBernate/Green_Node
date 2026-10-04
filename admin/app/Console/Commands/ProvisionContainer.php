@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProvisionContainer extends Command
 {
-    protected $signature = 'containers:provision {code : ID público, p.ej. cont-001} {email} {password} {--name=} {--address=}';
+    protected $signature = 'containers:provision {code : ID público, p.ej. cont-001} {email} {password} {--name=} {--address=} {--waste-type=}';
 
     protected $description = 'Crea un contenedor inteligente y su usuario con rol "contenedor".';
 
@@ -26,12 +26,8 @@ class ProvisionContainer extends Command
             $user->role = User::ROLE_CONTAINER;
             $user->save();
 
-            Container::create([
-                'identifier' => $this->argument('code'),
-                'name' => $this->option('name') ?: $this->argument('code'),
-                'address' => $this->option('address'),
-                'user_id' => $user->id,
-            ]);
+            Container::provisionFor($user, $this->option('name') ?: $this->argument('code'), $this->option('address') ?: 'Sin dirección', $this->option('waste-type') ?: 'organic')
+                ->update(['identifier' => $this->argument('code')]);
         });
 
         $this->info("Contenedor {$this->argument('code')} creado.");
