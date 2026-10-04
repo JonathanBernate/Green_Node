@@ -206,6 +206,12 @@ button { color: inherit; }
   background: none; border: none; cursor: pointer;
   font-size: 13.5px; font-weight: 600; color: var(--brand-dark);
 }
+/* Aviso al pulsar "¿Olvidaste tu contraseña?" */
+.forgot-hint {
+  margin: -12px 0 18px auto; padding: 9px 12px; border-radius: 12px;
+  background: var(--brand-soft); color: var(--brand-dark);
+  font-size: 13.5px; font-weight: 600; text-align: right;
+}
 
 .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0 18px; }
 .divider-line { flex: 1; height: 1px; background: var(--line); }

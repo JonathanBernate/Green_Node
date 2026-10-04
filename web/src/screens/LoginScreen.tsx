@@ -12,6 +12,7 @@ export function LoginScreen({ onLogin, onRegister, onTerms }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
@@ -111,9 +112,10 @@ export function LoginScreen({ onLogin, onRegister, onTerms }: Props) {
 
           {errors.general && <div className="alert-box" role="alert">{errors.general}</div>}
 
-          <button type="button" className="forgot-link">
+          <button type="button" className="forgot-link" onClick={() => setShowForgot(true)} aria-expanded={showForgot}>
             ¿Olvidaste tu contraseña?
           </button>
+          {showForgot && <p className="forgot-hint" role="status">Comunícate con el administrador</p>}
 
           <button type="submit" className="btn btn-primary btn-large" disabled={loading}>
             {loading ? <div className="spinner" /> : 'Iniciar sesión'}
