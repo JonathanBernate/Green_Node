@@ -1,22 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
 import { AuthRepositoryImpl } from '@/data/repositories/AuthRepositoryImpl';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatarUrl?: string;
-  neighborhood?: string;
-  points: number;
-  level: number;
-}
-=======
 import type { User, TokenPair, RegisterData } from '@/domain/entities/User';
 import { loginUseCase, registerUseCase, logoutUseCase, resetPasswordUseCase } from '@/data/di/container';
->>>>>>> feature/fredy
 
 interface AuthState {
   user: User | null;
@@ -44,33 +31,6 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       tokens: null,
       isAuthenticated: false,
-<<<<<<< HEAD
-      login: (user, tokens) => {
-        console.log('[AuthStore] login:', JSON.stringify(user));
-        set({ user, tokens, isAuthenticated: true });
-      },
-      logout: () => set({ user: null, tokens: null, isAuthenticated: false }),
-      setUser: (user) => set({ user }),
-      fetchUser: async () => {
-        const { tokens } = get();
-        if (!tokens?.accessToken) {
-          console.log('[AuthStore] fetchUser: no token');
-          return;
-        }
-        try {
-          console.log('[AuthStore] fetchUser: calling API...');
-          const user = await authRepository.getCurrentUser(tokens.accessToken);
-          console.log('[AuthStore] fetchUser: got user:', JSON.stringify(user));
-          set({ user });
-        } catch (error) {
-          console.log('[AuthStore] fetchUser error:', error);
-        }
-      },
-      clearPersistedData: async () => {
-        await AsyncStorage.removeItem('auth-storage');
-        set({ user: null, tokens: null, isAuthenticated: false });
-      },
-=======
       isLoading: false,
       error: null,
 
@@ -123,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true });
         try {
-          await logoutUseCase.execute();
+          await logoutUseCase.execute(get().tokens?.accessToken);
         } finally {
           set({
             user: null,
@@ -138,7 +98,26 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
 
       setUser: (user: User) => set({ user }),
->>>>>>> feature/fredy
+
+      fetchUser: async () => {
+        const { tokens } = get();
+        if (!tokens?.accessToken) {
+          console.log('[AuthStore] fetchUser: no token');
+          return;
+        }
+        try {
+          console.log('[AuthStore] fetchUser: calling API...');
+          const user = await authRepository.getCurrentUser(tokens.accessToken);
+          console.log('[AuthStore] fetchUser: got user:', JSON.stringify(user));
+          set({ user });
+        } catch (error) {
+          console.log('[AuthStore] fetchUser error:', error);
+        }
+      },
+      clearPersistedData: async () => {
+        await AsyncStorage.removeItem('auth-storage');
+        set({ user: null, tokens: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'auth-storage',

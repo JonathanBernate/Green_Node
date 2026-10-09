@@ -21,11 +21,11 @@ export interface UserResponse {
 
 export const authApi = {
   login: (email: string, password: string) =>
-    apiClient.post<LoginResponse>('/api/login', { email, password }),
+    apiClient.post<LoginResponse>('/login', { email, password }),
 
   getUser: (token: string) =>
-    apiClient.get<UserResponse>('/api/user', token),
+    apiClient.get<UserResponse>('/user', token),
 
   logout: (token: string) =>
-    apiClient.post<Record<string, never>>('/api/logout', undefined, token),
+    apiClient.post<Record<string, never>>('/logout', undefined, token),
 };

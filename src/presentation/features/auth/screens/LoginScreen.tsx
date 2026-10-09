@@ -19,31 +19,18 @@ import { Caption } from '@/presentation/components/ui/Typography/Caption';
 import { TextInput } from '@/presentation/components/ui/Input/TextInput';
 import { ButtonPrimary } from '@/presentation/components/ui/Button/ButtonPrimary';
 import { useAuthStore } from '@/presentation/store/authStore';
-import { AuthRepositoryImpl } from '@/data/repositories/AuthRepositoryImpl';
-import { ApiError } from '@/data/datasources/remote/api/apiClient';
 import { colors } from '@/shared/constants/colors';
 import { spacing } from '@/shared/constants/spacing';
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-const authRepository = new AuthRepositoryImpl();
 
 export function LoginScreen() {
   const navigation = useNavigation<NavProp>();
-<<<<<<< HEAD
-  const login = useAuthStore((s) => s.login);
-  const clearPersistedData = useAuthStore((s) => s.clearPersistedData);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
-=======
-  const { loginWithCredentials, isLoading, error, clearError } = useAuthStore();
+  const { loginWithCredentials, isLoading, error, clearError, clearPersistedData } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
->>>>>>> feature/fredy
 
   const validate = useCallback(() => {
     const newErrors: { email?: string; password?: string } = {};
@@ -63,27 +50,6 @@ export function LoginScreen() {
 
   const handleLogin = useCallback(async () => {
     if (!validate()) return;
-<<<<<<< HEAD
-    setLoading(true);
-    setErrors({});
-    try {
-      console.log('[Login] Calling API...');
-      const result = await authRepository.login(email.trim(), password);
-      console.log('[Login] API response:', JSON.stringify(result));
-      login(result.user, { accessToken: result.token, refreshToken: result.token });
-      console.log('[Login] Store updated');
-    } catch (error) {
-      console.log('[Login] Error:', error);
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : 'Error al conectar con el servidor';
-      setErrors({ general: message });
-    } finally {
-      setLoading(false);
-    }
-  }, [email, password, login, validate]);
-=======
     clearError();
     try {
       await loginWithCredentials(email.trim(), password);
@@ -91,7 +57,6 @@ export function LoginScreen() {
       // El error se maneja via el store
     }
   }, [email, password, loginWithCredentials, validate, clearError]);
->>>>>>> feature/fredy
 
   return (
     <ScreenContainer safeAreaBottom={false}>
@@ -167,12 +132,6 @@ export function LoginScreen() {
               </Pressable>
             </View>
 
-            {errors.general && (
-              <View style={styles.generalError}>
-                <Caption color={colors.semantic.error}>{errors.general}</Caption>
-              </View>
-            )}
-
             <Pressable
               onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotPassword}
@@ -242,29 +201,15 @@ export function LoginScreen() {
 
           <Spacer size="lg" />
 
-<<<<<<< HEAD
           {/* Debug: limpiar datos viejos */}
           <Pressable
-            onLongPress={async () => {
-              await clearPersistedData();
-              console.log('[Login] Persisted data cleared');
-            }}
+            onLongPress={clearPersistedData}
             style={styles.debugClear}
           >
-            <Caption color={colors.neutral[400]}>
+            <Caption color={colors.neutral[400]} align="center">
               (mantén presionado para limpiar datos)
             </Caption>
           </Pressable>
-
-          <Spacer size="lg" />
-=======
-          {/* Demo hint */}
-          <View style={styles.demoHint}>
-            <Caption color={colors.neutral[400]} align="center">
-              Demo: demo@greennode.co / 123456
-            </Caption>
-          </View>
->>>>>>> feature/fredy
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -351,12 +296,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-<<<<<<< HEAD
   debugClear: {
     padding: spacing.sm,
-=======
-  demoHint: {
-    paddingVertical: spacing.sm,
->>>>>>> feature/fredy
   },
 });

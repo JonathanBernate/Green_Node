@@ -6,7 +6,7 @@ const env = import.meta.env;
 
 export const config = {
   /** URL base del backend REST (Laravel). */
-  apiUrl: (env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000',
+  apiUrl: (env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? 'https://greennode-production-5779.up.railway.app',
   /**
    * true  → los datos de contenedores/red/reportes vienen de src/mocks (SIMULACIÓN).
    * false → se consumen los endpoints del backend (REAL).

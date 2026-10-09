@@ -241,29 +241,6 @@ greennode/network/metrics                  → Métricas de red (QoS 0)
 - Estados: Activo, Lleno, Mantenimiento, Offline
 - Alertas automáticas al superar 95% de capacidad
 
-<<<<<<< HEAD
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
-
-# codigos importantes 
-
-npm run web
-http://localhost:5173/
-jbernate3@gmail.com
-1234567890
-
-
-cd admin
-brew services start mysql   
-php artisan serve
-http://localhost:8000/admin/login
-admin@greennode.com
-password
-
-=======
 ### 4. Simulador de Red IoT
 
 - Python con paho-mqtt
@@ -313,4 +290,3 @@ mosquitto -v
 ## Licencia
 
 Proyecto académico — Universidad Distrital Francisco José de Caldas.
->>>>>>> feature/fredy

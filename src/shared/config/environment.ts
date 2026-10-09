@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import { Platform } from 'react-native';
-
-export const ENV = {
-  apiUrl: Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000',
-};
-=======
 /**
  * Configuración de entorno.
  * TODO: Reemplazar con react-native-config cuando se integren .env files.
@@ -21,7 +14,7 @@ export interface Environment {
 }
 
 const development: Environment = {
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://greennode-production-5779.up.railway.app/api',
   mqttBrokerUrl: 'mqtt://localhost',
   mqttPort: 1883,
   wsUrl: 'ws://localhost:3000',
@@ -41,7 +34,7 @@ const staging: Environment = {
 };
 
 const production: Environment = {
-  apiUrl: 'https://api.greennode.co/api',
+  apiUrl: 'https://greennode-production-5779.up.railway.app/api',
   mqttBrokerUrl: 'mqtts://mqtt.greennode.co',
   mqttPort: 8883,
   wsUrl: 'wss://api.greennode.co',
@@ -54,4 +47,3 @@ const production: Environment = {
 export const ENV: Environment = __DEV__ ? development : production;
 
 export { development, staging, production };
->>>>>>> feature/fredy

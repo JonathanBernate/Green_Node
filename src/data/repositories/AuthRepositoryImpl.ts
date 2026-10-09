@@ -1,27 +1,8 @@
-<<<<<<< HEAD
-import { authApi } from '@/data/datasources/remote/api/authApi';
-import { mapApiUserToEntity } from '@/data/mappers/UserMapper';
-import type { IAuthRepository } from '@/domain/repositories/IAuthRepository';
-
-export class AuthRepositoryImpl implements IAuthRepository {
-  async login(email: string, password: string) {
-    const response = await authApi.login(email, password);
-    return {
-      user: mapApiUserToEntity(response.user),
-      token: response.token,
-    };
-  }
-
-  async getCurrentUser(token: string) {
-    const response = await authApi.getUser(token);
-    return mapApiUserToEntity(response);
-  }
-
-  async logout(token: string) {
-    await authApi.logout(token);
-=======
 import type { IAuthRepository } from '@/domain/repositories/IAuthRepository';
 import type { AuthResult, RegisterData, TokenPair, User } from '@/domain/entities/User';
+import { authApi } from '@/data/datasources/remote/api/authApi';
+import { ApiError } from '@/data/datasources/remote/api/apiClient';
+import { mapApiUserToEntity } from '@/data/mappers/UserMapper';
 import {
   InvalidCredentialsError,
   EmailAlreadyInUseError,
@@ -32,14 +13,8 @@ import {
 /**
  * Implementación del repositorio de autenticación.
  *
- * Para el proyecto de grado se usa una implementación simulada.
- * Cuando se integre Firebase Auth, se reemplazarán los métodos
- * con llamadas reales a firebase/auth.
- *
- * Para activar Firebase, instalar:
- *   @react-native-firebase/app
- *   @react-native-firebase/auth
- *   @react-native-firebase/firestore
+ * login, getCurrentUser y logout usan la API real (Laravel).
+ * register, refreshToken, resetPassword y updateProfile siguen simulados en memoria.
  */
 export class AuthRepositoryImpl implements IAuthRepository {
   // Simulación de usuarios en memoria (reemplazar con Firebase)
@@ -64,19 +39,20 @@ export class AuthRepositoryImpl implements IAuthRepository {
   }
 
   async login(email: string, password: string): Promise<AuthResult> {
-    // Simular latencia de red
-    await this.delay(800);
-
-    const stored = this.users.get(email);
-    if (!stored || stored.password !== password) {
-      throw new InvalidCredentialsError();
+    try {
+      const response = await authApi.login(email, password);
+      const user = mapApiUserToEntity(response.user);
+      // La API solo entrega un token; se usa también como refreshToken.
+      const tokens: TokenPair = { accessToken: response.token, refreshToken: response.token };
+      this.currentUser = user;
+      this.currentTokens = tokens;
+      return { user, tokens };
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 422)) {
+        throw new InvalidCredentialsError(err);
+      }
+      throw err;
     }
-
-    const tokens = this.generateTokens(stored.user.id);
-    this.currentUser = stored.user;
-    this.currentTokens = tokens;
-
-    return { user: stored.user, tokens };
   }
 
   async register(data: RegisterData): Promise<AuthResult> {
@@ -109,10 +85,16 @@ export class AuthRepositoryImpl implements IAuthRepository {
     return { user: newUser, tokens };
   }
 
-  async logout(): Promise<void> {
-    await this.delay(300);
-    this.currentUser = null;
-    this.currentTokens = null;
+  async logout(token?: string): Promise<void> {
+    const accessToken = token ?? this.currentTokens?.accessToken;
+    try {
+      if (accessToken) await authApi.logout(accessToken);
+    } catch {
+      // Sin red o token vencido: la sesión local se cierra de todos modos.
+    } finally {
+      this.currentUser = null;
+      this.currentTokens = null;
+    }
   }
 
   async refreshToken(_refreshToken: string): Promise<TokenPair> {
@@ -123,8 +105,12 @@ export class AuthRepositoryImpl implements IAuthRepository {
     return this.generateTokens(this.currentUser.id);
   }
 
-  async getCurrentUser(): Promise<User | null> {
-    return this.currentUser;
+  async getCurrentUser(token?: string): Promise<User | null> {
+    const accessToken = token ?? this.currentTokens?.accessToken;
+    if (!accessToken) return this.currentUser;
+    const user = mapApiUserToEntity(await authApi.getUser(accessToken));
+    this.currentUser = user;
+    return user;
   }
 
   async resetPassword(email: string): Promise<void> {
@@ -161,6 +147,5 @@ export class AuthRepositoryImpl implements IAuthRepository {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
->>>>>>> feature/fredy
   }
 }

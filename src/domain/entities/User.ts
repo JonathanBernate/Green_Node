@@ -2,10 +2,6 @@ export interface User {
   id: string;
   name: string;
   email: string;
-<<<<<<< HEAD
-  points: number;
-  level: number;
-=======
   avatarUrl?: string;
   neighborhood?: string;
   points: number;
@@ -28,5 +24,4 @@ export interface RegisterData {
 export interface AuthResult {
   user: User;
   tokens: TokenPair;
->>>>>>> feature/fredy
 }

@@ -8,5 +8,6 @@ export function mapApiUserToEntity(data: UserResponse): User {
     email: data.email,
     points: data.points ?? 0,
     level: data.level ?? 1,
+    createdAt: new Date().toISOString(),
   };
 }

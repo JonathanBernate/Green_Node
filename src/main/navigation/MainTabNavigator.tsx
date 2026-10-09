@@ -11,7 +11,6 @@ import { useIoTConnection } from '@/shared/hooks/useIoTConnection';
 import { colors } from '@/shared/constants/colors';
 import { AppHeader } from '@/presentation/components/layout/AppHeader';
 import { HomeScreen } from '@/presentation/features/home/screens/HomeScreen';
-import { ProfileScreen } from '@/presentation/features/profile/screens/ProfileScreen';
 
 const PlaceholderScreen = ({ title }: { title: string }) => (
   <View style={styles.placeholder}>
@@ -57,24 +56,15 @@ export function MainTabNavigator() {
         options={{ tabBarLabel: 'Historial', tabBarIcon: () => <Text>📋</Text> }}
       />
       <Tab.Screen
-<<<<<<< HEAD
-=======
         name="EducationTab"
         component={EducationScreen}
         options={{ tabBarLabel: 'Aprender', tabBarIcon: () => <Text>📚</Text> }}
       />
       <Tab.Screen
->>>>>>> feature/fredy
         name="ProfileTab"
         component={ProfileScreen}
         options={{ tabBarLabel: 'Perfil', tabBarIcon: () => <Text>👤</Text> }}
-<<<<<<< HEAD
-      >
-        {() => <ProfileScreen />}
-      </Tab.Screen>
-=======
       />
->>>>>>> feature/fredy
     </Tab.Navigator>
   );
 }
